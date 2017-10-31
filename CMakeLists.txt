@@ -7,7 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   cmake_modules
-  px4flow
+  px_comm
 )
 
 find_package(Eigen REQUIRED)
@@ -18,9 +18,7 @@ find_package(PCL REQUIRED COMPONENTS common io)
 catkin_package(
    DEPENDS OpenCV Boost Eigen PCL
   INCLUDE_DIRS include
-#  LIBRARIES stereo_slam
    CATKIN_DEPENDS roscpp
-#  DEPENDS system_lib
 )
 include_directories(include
 					${Boost_INCLUDE_DIRS}

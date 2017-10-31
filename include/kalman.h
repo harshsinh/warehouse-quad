@@ -17,9 +17,8 @@
 #include <sensor_msgs/Range.h>
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <px4flow/px4flow.h>
+#include <px_comm/OpticalFlow.h>
 
-#include "rviztools.h"
 #include "sonar.h"
 
 using namespace std;
@@ -36,7 +35,7 @@ public:
 private:
 	void imuCallback(const sensor_msgs::Imu::ConstPtr& msg);
 	void magCallback(const sensor_msgs::MagneticField::ConstPtr& msg);
-	void sonarCallback(const sensor_msgs::Range::ConstPtr& msg);
+	void sonarCallback(const px_comm::OpticalFlow::ConstPtr& msg);
 	void ekfInitialize();
 	void ekfPrediction();
 	void ekfUpdate();

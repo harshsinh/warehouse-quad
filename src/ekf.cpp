@@ -3,7 +3,7 @@
 
 using namespace std;
 
-namespace IMULIDAR{
+namespace HMDETECTION{
 
 EKF::EKF(ros::NodeHandle nh):currentImutime(0.0), previousImutime(0.0), imuState(WAITING), magState(WAITING), imuSeq(0), magSeq(0), ekfCurrentState(EKF_WAITING),X(19), X_(19), sigma(19,19), sigma_(19,19), sonarState(WAITING){
 	nh_ = nh;
@@ -85,9 +85,9 @@ void EKF::magCallback(const sensor_msgs::MagneticField::ConstPtr& msg){
 	}
 }
 
-void EKF::sonarCallback(const sensor_msgs::Range::ConstPtr& msg){
+void EKF::sonarCallback(const px_comm::OpticalFlow::ConstPtr& msg){
 
-	double sonarDistance = sonarVal.getSonarFilteredData(msg->groud_distance);
+	double sonarDistance = sonarVal.getSonarFilteredData(msg->ground_distance);
 
 	int goal =1;
 	if (sonarDistance>5){
@@ -100,7 +100,7 @@ void EKF::sonarCallback(const sensor_msgs::Range::ConstPtr& msg){
 			sonarState=INITIALIZED;
 			return;
 		}
-		ekfUpdateHeight(msg->range);
+		ekfUpdateHeight(msg->ground_distance);
 
 	}
 }
@@ -203,9 +203,9 @@ void EKF::ekfPrediction(){
 	Q.block<4,4>(0,0) = 0.00001*MatrixXd::Identity(4,4);
 	Q.block<3,3>(7,7) = 0.001*MatrixXd::Identity(3,3);
 
-	if(lidarState!=WAITING){
+	/*if(lidarState!=WAITING){
 		Q.block<2,2>(16,16) = deltaImutime*deltaImutime*2*MatrixXd::Identity(2,2);
-	}
+	}*/
 
 	if(sonarState!=WAITING){
 		Q(18,18) = 10*deltaImutime*deltaImutime;

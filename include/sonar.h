@@ -16,7 +16,7 @@
 using namespace Eigen;
 using namespace std;
 
-namespace IMULIDAR{
+namespace HMDETECTION{
 class sonar{
 	public:
 		sonar();
