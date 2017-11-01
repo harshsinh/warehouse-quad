@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   cmake_modules
   px_comm
+
 )
 
 find_package(Eigen REQUIRED)

@@ -1,4 +1,5 @@
 #include <ros/ros.h>
+#include "ros/ros.h"
 #include "kalman.h"
 
 using namespace std;
@@ -13,10 +14,10 @@ void EKF::subscriber(){
 
 	ros::Subscriber sub1 = nh_.subscribe("/mavros/imu/data",100, &EKF::imuCallback, this);
 	ros::Subscriber sub2 = nh_.subscribe("/mavros/imu/mag",100, &EKF::magCallback, this);
-	ros::Subscriber sub4 = nh_.subscribe("/px4flow/optflow",10, &EKF::sonarCallback, this);
+	ros::Subscriber sub4 = nh_.subscribe("/px4flow/opt_flow",10, &EKF::sonarCallback, this);
 
 	anglesPub = nh_.advertise<geometry_msgs::Vector3Stamped>("/ekf/rpy",10);
-
+	posePub = nh_.advertise<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose",10);
 	ros::spin();
 }
 
@@ -93,6 +94,7 @@ void EKF::sonarCallback(const px_comm::OpticalFlow::ConstPtr& msg){
 	if (sonarDistance>5){
 		goal =0;
 	}
+	ROS_INFO("OK");
 
 	if(sonarDistance>0.2 && sonarDistance<5){
 
@@ -101,7 +103,7 @@ void EKF::sonarCallback(const px_comm::OpticalFlow::ConstPtr& msg){
 			return;
 		}
 		ekfUpdateHeight(msg->ground_distance);
-
+		ROS_INFO("OK1");
 	}
 }
 
@@ -353,6 +355,13 @@ void EKF::ekfUpdateHeight(double sonarDistance){
 	sigma_ =sigma;
 	X_ = X;
 
+	geometry_msgs::PoseStamped pose;
+
+	pose.header.stamp = ros::Time::now();
+	pose.header.frame_id = "quadPose";
+
+	pose.pose.position.z = X_(15);
+	posePub.publish(pose);
 }
 
 }

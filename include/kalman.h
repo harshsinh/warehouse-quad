@@ -18,6 +18,7 @@
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <px_comm/OpticalFlow.h>
+#include <geometry_msgs/PoseStamped.h>
 
 #include "sonar.h"
 
@@ -41,7 +42,7 @@ private:
 	void ekfUpdate();
 	void ekfUpdateHeight(double sonarDistance);
 
-	ros::Publisher anglesPub, accelefPub;
+	ros::Publisher anglesPub, accelefPub, posePub;
 
 	ros::NodeHandle nh_;
 
