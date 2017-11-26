@@ -54,23 +54,25 @@ int main (int argc, char** argv)
 		// 	cap >> frame;
 
 		if (!frame.empty()) {
-			cv::Mat  thresh, gray, ero, dila, blurred, opening, closing, result;
+			cv::Mat  thresh, gray, ero, dila, blurred, opening, closing, result, temp;
 			cv::Mat grad_x, grad_y;
 			std::vector<cv::Vec2f> lines;
 
-			
+			cv::resize (frame, frame, cv::Size(256, 256));
 			cv::cvtColor (frame, gray, CV_BGR2GRAY);
 			cv::GaussianBlur (gray, blurred,  cv::Size(11, 11), 0, 0);
 			// cv::adaptiveThreshold (blurred, thresh, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 7, 0);
 			cv::threshold (blurred, thresh, 127, 255, CV_THRESH_BINARY);
 			cv::morphologyEx (thresh, closing, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2, 2),  cv::Point(-1, -1)));
 			cv::morphologyEx (closing, opening, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2, 2),  cv::Point(-1, -1)));
-			// cv::Canny (thresh, result, 50, 200, 3);
-			cv::Sobel( thresh, grad_x, CV_16S, 1, 0, 3, 1, 0, cv::BORDER_DEFAULT );
-			cv::convertScaleAbs( grad_x, grad_x );
-			cv::Sobel( thresh, grad_y, CV_16S, 0, 1, 3, 1, 0, cv::BORDER_DEFAULT );
-			cv::convertScaleAbs( grad_y, grad_y );
-			cv::addWeighted( grad_x, 0.5, grad_y, 0.5, 0, result);
+			cv::Canny (thresh, temp, 50, 150, 3);
+			result = cv::Scalar::all(0);
+			opening.copyTo(result, temp);
+			// cv::Sobel( thresh, grad_x, CV_16S, 1, 0, 3, 1, 0, cv::BORDER_DEFAULT );
+			// cv::convertScaleAbs( grad_x, grad_x );
+			// cv::Sobel( thresh, grad_y, CV_16S, 0, 1, 3, 1, 0, cv::BORDER_DEFAULT );
+			// cv::convertScaleAbs( grad_y, grad_y );
+			// cv::addWeighted( grad_x, 0.5, grad_y, 0.5, 0, result);
 			
 			cv::imshow("image", thresh);
 			cv::imshow("openig", result);
