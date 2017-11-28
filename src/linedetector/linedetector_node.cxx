@@ -4,7 +4,7 @@
  * Publishers : /detected -- sensor_mags/Image  : detected Image with line
  * Subscriber : /usb_cam/image_raw -- Input Image.
  * Origin : (0, 0) at image center
- * Slope with respect to y axis
+ * x-axis is vertically up and y-axis is 90 deg counter-clockwise from x.
  * 
  ****************************************************************************/
 #include "CVInclude.h"
@@ -52,7 +52,7 @@ int main (int argc, char** argv)
 	//camera choice
 	int camera = argv [1][0] - 48;
 
-	// Camera has to specified in digit, else go for subcription
+	// Camera has to specified in digit, else works on /usb_cam/image_raw
 	if (camera >= 0 && camera < 10) {
 
 		std::cout << camera << std::endl;
@@ -75,9 +75,7 @@ int main (int argc, char** argv)
 		if (!frame.empty()) {
 
 			cv::Mat  thresh, gray, blurred, opening, closing, result, temp, final_image;
-
 			std::vector<cv::Vec4i> lines;
-			std::vector<cv::Vec2f> mc;
 
 			cv::resize (frame, frame, cv::Size(256, 256));
 			cv::cvtColor (frame, gray, CV_BGR2GRAY);
@@ -92,8 +90,8 @@ int main (int argc, char** argv)
 
 			cv::HoughLinesP (result, lines, 1, CV_PI/180, 5);
 
-			std::cout << lines.size() << std::endl;			
 			std::cout << "******************" << std::endl;
+			std::cout << lines.size() << std::endl;
 
 			float temp_ = 0.0, slope = 0.0, interc = 0.0;
 			float slope_ = 0.0, interc_ = 0.0;
@@ -105,12 +103,16 @@ int main (int argc, char** argv)
 				cv::Vec4i l = *i;
 				cv::line (frame, cv::Point (l[0], l[1]), cv::Point (l[2], l[3]), cv::Scalar(255, 0, 0), 3, CV_AA);
 				count += 1;
+
+				// Transformation from default coordinates
 				float x1_, y1_, x2_, y2_;
 				x1_ = 128 - l[1]; x2_ = 128 - l[3];
 				y1_ = 128 - l[0]; y2_ = 128 - l[2];
-				slope = (y2_ - y1_)/(x2_ - x1_)?(x2_ - x1_):1;
-				interc = slope*x1_ - y1_;
-				slope_ += slope;
+
+				slope 	 = (y2_ - y1_)/(x2_ - x1_)?(x2_ - x1_):1; // Prevent division by zero
+				interc   = slope*x1_ - y1_;
+
+				slope_  += slope;
 				interc_ += interc;
 
 			}
@@ -128,9 +130,9 @@ int main (int argc, char** argv)
 
 				pixelLine.x = movavgs/movavglim;
 				pixelLine.y = movavgi/movavglim;
-				movcount = 0;
-				movavgs = 0.0;
-				movavgi = 0.0;
+				movcount 	= 0;
+				movavgs 	= 0.0;
+				movavgi 	= 0.0;
 
 			}
 
