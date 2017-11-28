@@ -1,5 +1,3 @@
-#include <ros/ros.h>
-#include "ros/ros.h"
 #include "kalman.h"
 
 using namespace std;

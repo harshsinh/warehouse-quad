@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   cmake_modules
   px_comm
-
+  cv_bridge
 )
 
 find_package(Eigen REQUIRED)
@@ -28,8 +28,8 @@ include_directories(include
                     ${Eigen_INCLUDE_DIRS})
 
 ## Declare a cpp executable
-add_executable(main src/main.cpp src/ekf.cpp src/sonar.cpp)
-target_link_libraries(main
+add_executable(main src/main.cpp src/ekf.cpp src/sonar.cpp src/marker.cpp)
+target_link_libraries(main zbar
     ${catkin_LIBRARIES}
     ${OpenCV_LIBRARIES}
     ${Boost_LIBRARIES})

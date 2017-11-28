@@ -8,7 +8,7 @@
 #ifndef KALMAN_H_
 #define KALMAN_H_
 
-
+#include <ros/ros.h>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
