@@ -31,3 +31,6 @@
 *.out
 .vscode/
 *.app
+
+# Vscode
+.vscode
