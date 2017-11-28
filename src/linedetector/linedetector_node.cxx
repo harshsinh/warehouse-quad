@@ -44,6 +44,11 @@ int main (int argc, char** argv)
 	ros::Publisher pub = nh.advertise<geometry_msgs::Vector3>("/line", 100);
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
 	
+	//moving average
+	int movcount = 0;
+	int movavglim = 3;
+	float movavgs = 0.0, movavgi = 0.0;
+
 	//camera choice
 	int camera = argv [1][0] - 48;
 
@@ -93,14 +98,12 @@ int main (int argc, char** argv)
 			float temp_ = 0.0, slope = 0.0, interc = 0.0;
 			float slope_ = 0.0, interc_ = 0.0;
 			int count = 0;
+			movcount += 1;
 
 			for (std::vector<cv::Vec4i>::iterator i = lines.begin(); i != lines.end(); ++i) {
 
 				cv::Vec4i l = *i;
 				cv::line (frame, cv::Point (l[0], l[1]), cv::Point (l[2], l[3]), cv::Scalar(255, 0, 0), 3, CV_AA);
-				// temp_ = (l[3] - l[1]) ? (l[3] - l[1]) : 1;
-				// slope += (l[2] - l[0])/temp_;
-				// interc += l[1]*l[2] - l[3]*l[0];
 				count += 1;
 				float x1_, y1_, x2_, y2_;
 				x1_ = 128 - l[1]; x2_ = 128 - l[3];
@@ -115,9 +118,19 @@ int main (int argc, char** argv)
 			if (count) {
 
 				std::cout << "m : " << slope_/count << " c : " << (interc_/count) << std::endl;
-				pixelLine.x = slope/count;
-				pixelLine.y = (interc/count);
+				movavgs += (slope/count);
+				movavgi += (interc/count);
 				std::cout << "******************" << std::endl;
+
+			}
+
+			if (movcount == movavglim) {
+
+				pixelLine.x = movavgs/movavglim;
+				pixelLine.y = movavgi/movavglim;
+				movcount = 0;
+				movavgs = 0.0;
+				movavgi = 0.0;
 
 			}
 
