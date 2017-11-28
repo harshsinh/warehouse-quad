@@ -91,23 +91,35 @@ int main (int argc, char** argv)
 			std::cout << "******************" << std::endl;
 
 			float temp_ = 0.0, slope = 0.0, interc = 0.0;
+			float slope_ = 0.0, interc_ = 0.0;
 			int count = 0;
 
 			for (std::vector<cv::Vec4i>::iterator i = lines.begin(); i != lines.end(); ++i) {
 
 				cv::Vec4i l = *i;
 				cv::line (frame, cv::Point (l[0], l[1]), cv::Point (l[2], l[3]), cv::Scalar(255, 0, 0), 3, CV_AA);
-				temp_ = (l[3] - l[1]) ? (l[3] - l[1]) : 1;
-				slope += (l[2] - l[0])/temp_;
-				interc += l[1]*l[2] - l[3]*l[0];
+				// temp_ = (l[3] - l[1]) ? (l[3] - l[1]) : 1;
+				// slope += (l[2] - l[0])/temp_;
+				// interc += l[1]*l[2] - l[3]*l[0];
 				count += 1;
+				float x1_, y1_, x2_, y2_;
+				x1_ = 128 - l[1]; x2_ = 128 - l[3];
+				y1_ = 128 - l[0]; y2_ = 128 - l[2];
+				slope = (y2_ - y1_)/(x2_ - x1_)?(x2_ - x1_):1;
+				interc = slope*x1_ - y1_;
+				slope_ += slope;
+				interc_ += interc;
 
 			}
 
-			std::cout << "m : " << slope/count << " c : " << (interc/count) - 128 << std::endl;
-			pixelLine.x = slope/count;
-			pixelLine.y = (interc/count) - 128;
-			std::cout << "******************" << std::endl;
+			if (count) {
+
+				std::cout << "m : " << slope_/count << " c : " << (interc_/count) << std::endl;
+				pixelLine.x = slope/count;
+				pixelLine.y = (interc/count);
+				std::cout << "******************" << std::endl;
+
+			}
 
 			cv::imshow("image", thresh);
 			cv::imshow("openig", result);
