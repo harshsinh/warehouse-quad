@@ -71,20 +71,21 @@ int main (int argc, char** argv)
             auto mean_image = frame.clone();
             cv::cvtColor (frame, lab_image, CV_BGR2Lab);
 
-            /* Number of super-pixels and weight factors */
+/*******************************************************************/
+/* SLIC not good, fails on mean calculation */
+            /* Number of super-pixels and weight factors *
             int w = frame.rows, h = frame.cols;
             double step = std::sqrt((w * h) / nr_superpixels);
 
-            /* Perform SLIC */
+            /* Perform SLIC *
             Slic slic;
             slic.generate_superpixels (lab_image, step, nc);
             slic.create_connectivity (lab_image);
 
-            /* Display the results */
+            /* Display the results *
             slic.display_contours(frame, cv::Vec3b (0, 0, 255));
-            // std::cout << *mean_image.size << std::endl;
-            // slic.colour_with_cluster_means(mean_image);
-            // std::cout << *mean_image.size << std::endl;
+/*******************************************************************/
+
             cv::imshow("image", frame);
             pixelLine.x = 1;
             pub.publish(pixelLine);
