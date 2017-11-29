@@ -9,7 +9,7 @@
  ****************************************************************************/
 #include "CVInclude.h"
 #include <ros/ros.h>
-#include <math>
+#include <math.h>
 #include <vector>
 #include <string>
 #include <iostream>
