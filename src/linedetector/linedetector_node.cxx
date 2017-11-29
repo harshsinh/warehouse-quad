@@ -1,20 +1,23 @@
 /*****************************************************************************
- * 
+ *
  * Publishers : /lines -- geometry_msgs/Vector3 : x - slope, y - intercept
  * Publishers : /detected -- sensor_mags/Image  : detected Image with line
  * Subscriber : /usb_cam/image_raw -- Input Image.
  * Origin : (0, 0) at image center
  * x-axis is vertically up and y-axis is 90 deg counter-clockwise from x.
- * 
+ *
  ****************************************************************************/
 #include "CVInclude.h"
 #include <ros/ros.h>
+#include <math>
 #include <vector>
 #include <string>
 #include <iostream>
 #include <geometry_msgs/Vector3.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/Image.h>
+
+#define TODEG 180/3.14
 
 // Frame and Camera
 cv::Mat frame;
@@ -38,12 +41,12 @@ int main (int argc, char** argv)
 	ros::Rate loop_rate (50);
 	geometry_msgs::Vector3 pixelLine;
 	image_transport::ImageTransport it(nh);
-	
+
 	// Publish the final line detected image and line
 	image_transport::Publisher threshpub = it.advertise ("thresholded", 1);
 	ros::Publisher pub = nh.advertise<geometry_msgs::Vector3>("/line", 100);
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
-	
+
 	//moving average
 	int movcount = 0;
 	int movavglim = 3;
@@ -57,13 +60,13 @@ int main (int argc, char** argv)
 
 		std::cout << camera << std::endl;
 		cap.open (camera);
-		
+
 		if (!cap.isOpened()) {
-		
+
 			std::cout << "Unable to open camera " << camera << std::endl;
 			ROS_ERROR_STREAM ("Unable to open camera");
 			return -1;
-		
+
 		}
 	}
 
@@ -119,7 +122,7 @@ int main (int argc, char** argv)
 
 			if (count) {
 
-				std::cout << "m : " << slope_/count << " c : " << (interc_/count) << std::endl;
+				std::cout << "m : " << std::atan2(slope_/count)*TODEG << " c : " << (interc_/count) << std::endl;
 				movavgs += (slope/count);
 				movavgi += (interc/count);
 				std::cout << "******************" << std::endl;
