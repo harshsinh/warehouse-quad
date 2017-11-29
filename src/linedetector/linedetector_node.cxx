@@ -77,21 +77,24 @@ int main (int argc, char** argv)
 
 		if (!frame.empty()) {
 
-			cv::Mat  thresh, gray, blurred, opening, closing, result, temp, final_image;
+			cv::Mat  thresh, hsv, blurred, opening, closing, result, temp, final_image;
 			std::vector<cv::Vec4i> lines;
 
 			cv::resize (frame, frame, cv::Size(256, 256));
-			cv::cvtColor (frame, gray, CV_BGR2GRAY);
-			cv::GaussianBlur (gray, blurred,  cv::Size(11, 11), 0, 0);
+			cv::cvtColor (frame, hsv, CV_BGR2HSV);
+			cv::inRange (hsv, cv::Scalar(20, 100, 100), cv::Scalar(30, 255, 255), thresh);
+			cv::GaussianBlur (thresh, blurred,  cv::Size(11, 11), 0, 0);
 			cv::threshold (blurred, thresh, 127, 255, CV_THRESH_BINARY);
 			cv::morphologyEx (thresh, closing, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2, 2),  cv::Point(-1, -1)));
 			cv::morphologyEx (closing, opening, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2, 2),  cv::Point(-1, -1)));
 			cv::Canny (thresh, temp, 50, 150, 3);
+			cv::GaussianBlur (temp, temp,  cv::Size(11, 11), 0, 0);
+			cv::Canny (temp, temp, 50, 150, 3);
 
 			result = cv::Scalar::all(0);
 			opening.copyTo(result, temp);
 
-			cv::HoughLinesP (result, lines, 1, CV_PI/180, 5);
+			cv::HoughLinesP (result, lines, 1, CV_PI/180, 5, 10);
 
 			std::cout << "******************" << std::endl;
 			std::cout << lines.size() << std::endl;
