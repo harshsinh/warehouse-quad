@@ -88,13 +88,13 @@ int main (int argc, char** argv)
 			cv::morphologyEx (thresh, closing, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2, 2),  cv::Point(-1, -1)));
 			cv::morphologyEx (closing, opening, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2, 2),  cv::Point(-1, -1)));
 			cv::Canny (thresh, temp, 50, 150, 3);
-			cv::GaussianBlur (temp, temp,  cv::Size(11, 11), 0, 0);
-			cv::Canny (temp, temp, 50, 150, 3);
+			// cv::GaussianBlur (temp, temp,  cv::Size(11, 11), 0, 0);
+			// cv::Canny (temp, temp, 50, 150, 3);
 
 			result = cv::Scalar::all(0);
-			opening.copyTo(result, temp);
+			temp.copyTo(result);
 
-			cv::HoughLinesP (result, lines, 1, CV_PI/180, 5, 10);
+			cv::HoughLinesP (result, lines, 1, CV_PI/180, 15, 15);
 
 			std::cout << "******************" << std::endl;
 			std::cout << lines.size() << std::endl;
@@ -115,7 +115,7 @@ int main (int argc, char** argv)
 				x1_ = 128 - l[1]; x2_ = 128 - l[3];
 				y1_ = 128 - l[0]; y2_ = 128 - l[2];
 
-				slope 	 = (y2_ - y1_)/(x2_ - x1_)?(x2_ - x1_):1; // Prevent division by zero
+				slope 	 = (y2_ - y1_)/((x2_ - x1_)?(x2_ - x1_):0.00001); // Prevent division by zero
 				interc   = slope*x1_ - y1_;
 
 				slope_  += slope;
@@ -126,8 +126,8 @@ int main (int argc, char** argv)
 			if (count) {
 
 				std::cout << "m : " << std::atan2(slope_, count)*TODEG << " c : " << (interc_/count) << std::endl;
-				movavgs += (slope/count);
-				movavgi += (interc/count);
+				movavgs += std::atan2(slope_, count);
+				movavgi += (interc_/count);
 				std::cout << "******************" << std::endl;
 
 			}
