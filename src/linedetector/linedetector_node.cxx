@@ -122,7 +122,7 @@ int main (int argc, char** argv)
 
 			if (count) {
 
-				std::cout << "m : " << std::atan2(slope_/count)*TODEG << " c : " << (interc_/count) << std::endl;
+				std::cout << "m : " << std::atan2(slope_, count)*TODEG << " c : " << (interc_/count) << std::endl;
 				movavgs += (slope/count);
 				movavgi += (interc/count);
 				std::cout << "******************" << std::endl;
