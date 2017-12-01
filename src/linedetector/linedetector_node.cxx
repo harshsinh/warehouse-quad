@@ -6,6 +6,8 @@
  * Origin : (0, 0) at image center
  * x-axis is vertically up and y-axis is 90 deg counter-clockwise from x.
  *
+ * TODO: Publish on /mavros/distance_sensor/<sensor_name>
+ * TODO: Ensure that coordinate system is corrected for camera orientation.
  ****************************************************************************/
 #include "CVInclude.h"
 #include <ros/ros.h>
