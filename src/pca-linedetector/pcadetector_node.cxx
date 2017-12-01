@@ -60,11 +60,15 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
     for(int i = 0; i < eigenvec.rows; ++i) {
 
         const double * veci = eigenvec.ptr<double>(i);
-        vectors[i] = veci[1]/veci[0]?veci[0]:0.0001;
+        std::cout << "veci 1 : " << veci[0] << "veci 2 : " << veci[1] << std::endl;
+
+        vectors[i] = veci[1]/(veci[0]?veci[0]:0.0001);
         vectors[i+1] = mean[1] - (vectors[i] * mean[0]);
     }
 
     std::cout << vectors << std::endl;
+    std::cout << "slope 1 : " << std::atan2(vectors[1], vectors[0]) * 180/3.1415 << "\t"
+              << "slope 2 : " << std::atan2(vectors[3], vectors[2]) * 180/3.1415 << std::endl;
     return (vectors);
 }
 
@@ -137,10 +141,16 @@ int main (int argc, char** argv)
             for (std::vector<cv::Vec4i>::iterator it = lines.begin(); it != lines.end(); ++it) {
 
                 cv::Vec4i l = *it;
-                points.push_back(cv::Vec2i(l[0], l[1]));
-                points.push_back(cv::Vec2i(l[2], l[3]));
-                cv::circle(frame, cv::Point(l[0], l[1]), 5, cv::Scalar(255, 0, 0));
-                cv::circle(frame, cv::Point(l[2], l[3]), 5, cv::Scalar(255, 0, 0));
+
+                // cv::line (frame, cv::Point (l[0], l[1]), cv::Point (l[2], l[3]), cv::Scalar(255, 0, 0), 3, CV_AA);
+                
+                // Transformation from default coordinates
+				int x1_, y1_, x2_, y2_;
+				x1_ = 128 - l[1]; x2_ = 128 - l[3];
+                y1_ = 128 - l[0]; y2_ = 128 - l[2];
+                
+                points.push_back(cv::Vec2i(x1_, y1_));
+                points.push_back(cv::Vec2i(x2_, y2_));
 
             }
 
@@ -150,7 +160,6 @@ int main (int argc, char** argv)
             auto c1_ = principle_lines[1];
             auto m2_ = principle_lines[2];
             auto c2_ = principle_lines[3];
-
 
             /* Slopes of the two principle components can not be same */
             if(m1_ != m2_) {
