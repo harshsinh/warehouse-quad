@@ -76,13 +76,13 @@ int main (int argc, char** argv)
 			cap >> frame;
 
 		if (!frame.empty()) {
-
+			
 			cv::Mat  thresh, hsv, blurred, opening, closing, result, temp, final_image;
 			std::vector<cv::Vec4i> lines;
 
 			cv::resize (frame, frame, cv::Size(256, 256));
 			cv::cvtColor (frame, hsv, CV_BGR2HSV);
-			cv::inRange (hsv, cv::Scalar(20, 100, 100), cv::Scalar(30, 255, 255), thresh);
+			cv::inRange (hsv, cv::Scalar(20, 80, 100), cv::Scalar(40, 255, 255), thresh);
 			cv::GaussianBlur (thresh, blurred,  cv::Size(11, 11), 0, 0);
 			cv::threshold (blurred, thresh, 127, 255, CV_THRESH_BINARY);
 			cv::morphologyEx (thresh, closing, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2, 2),  cv::Point(-1, -1)));
