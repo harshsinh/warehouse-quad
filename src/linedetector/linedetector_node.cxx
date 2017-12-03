@@ -1,21 +1,25 @@
-/*****************************************************************************
+/***************************************************************************
  *
- * Publishers : /lines -- geometry_msgs/Vector3 : x - slope, y - intercept
+ * Publishers : /mavros/distance_sensor -- sensor_msgs/range : pixelLine
  * Publishers : /detected -- sensor_mags/Image  : detected Image with line
  * Subscriber : /usb_cam/image_raw -- Input Image.
  * Origin : (0, 0) at image center
  * x-axis is vertically up and y-axis is 90 deg counter-clockwise from x.
- *
- * TODO: Publish on /mavros/distance_sensor/<sensor_name>
- * TODO: Ensure that coordinate system is corrected for camera orientation.
- ****************************************************************************/
+ * 
+ * pixelLine.radiation_type : Mode of motion
+ * pixelLine.min_range : slope
+ * pixelLine.max_range : intercept
+ * 
+ * Modes of motion : 0 -- straight line motion
+ * 					 1 -- 
+ **************************************************************************/
 #include "CVInclude.h"
 #include <ros/ros.h>
 #include <math.h>
 #include <vector>
 #include <string>
 #include <iostream>
-#include <geometry_msgs/Vector3.h>
+#include <sensor_msgs/Range.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/Image.h>
 
@@ -42,12 +46,12 @@ int main (int argc, char** argv)
 	ros::init (argc, argv, "linedetector_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate (50);
-	geometry_msgs::Vector3 pixelLine;
+	sensor_msgs::Range pixelLine;
 	image_transport::ImageTransport it(nh);
 
 	// Publish the final line detected image and line
 	image_transport::Publisher threshpub = it.advertise ("thresholded", 1);
-	ros::Publisher pub = nh.advertise<geometry_msgs::Vector3>("/line", 100);
+	ros::Publisher pub = nh.advertise<sensor_msgs::Range>("/maros/distance_sensor/line", 100);
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
 
 	//moving average
@@ -141,8 +145,9 @@ int main (int argc, char** argv)
 
 			if (movcount == movavglim) {
 
-				pixelLine.x = movavgs/movavglim;
-				pixelLine.y = movavgi/movavglim;
+				pixelLine.radiation_type = 0;
+				pixelLine.min_range = movavgs/movavglim;
+				pixelLine.max_range = movavgi/movavglim;
 				movcount 	= 0;
 				movavgs 	= 0.0;
 				movavgi 	= 0.0;
