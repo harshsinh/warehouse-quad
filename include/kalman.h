@@ -19,6 +19,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <px_comm/OpticalFlow.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <mavros_msgs/State.h>
 
 #include "sonar.h"
 
@@ -37,12 +38,13 @@ private:
 	void imuCallback(const sensor_msgs::Imu::ConstPtr& msg);
 	void magCallback(const sensor_msgs::MagneticField::ConstPtr& msg);
 	void sonarCallback(const px_comm::OpticalFlow::ConstPtr& msg);
+	void stateCallback(const mavros_msgs::State::ConstPtr& msg);
 	void ekfInitialize();
 	void ekfPrediction();
 	void ekfUpdate();
 	void ekfUpdateHeight(double sonarDistance);
 
-	ros::Publisher anglesPub, accelefPub, posePub;
+	ros::Publisher anglesPub, accelefPub, posePub, setpointPub;
 
 	ros::NodeHandle nh_;
 
@@ -62,6 +64,8 @@ private:
 
 	double roll, pitch, yaw;
 	sonar sonarVal;
+
+	double height;
 
 	ros::Time time;
 };

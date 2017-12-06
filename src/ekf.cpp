@@ -13,10 +13,31 @@ void EKF::subscriber(){
 	ros::Subscriber sub1 = nh_.subscribe("/mavros/imu/data",100, &EKF::imuCallback, this);
 	ros::Subscriber sub2 = nh_.subscribe("/mavros/imu/mag",100, &EKF::magCallback, this);
 	ros::Subscriber sub4 = nh_.subscribe("/px4flow/opt_flow",10, &EKF::sonarCallback, this);
+    ros::Subscriber state_sub = nh_.subscribe<mavros_msgs::State>("/mavros/state", 10, &EKF::stateCallback, this);
 
 	anglesPub = nh_.advertise<geometry_msgs::Vector3Stamped>("/ekf/rpy",10);
 	posePub = nh_.advertise<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose",10);
+	setpointPub = nh_.advertise<geometry_msgs::PoseStamped>("/mavros/setpoint_position/local",10);
 	ros::spin();
+}
+
+
+void EKF::stateCallback(const mavros_msgs::State::ConstPtr& msg){
+
+	geometry_msgs::PoseStamped setPoint;
+	setPoint.header.stamp = ros::Time::now();
+	setPoint.header.frame_id = "quad";
+
+	if(msg->mode !="OFFBOARD"){
+		height = X(15);
+	}
+
+	setPoint.pose.position.x = 0;
+	setPoint.pose.position.y = 0;
+	setPoint.pose.position.z = height;
+
+	setpointPub.publish(setPoint);
+
 }
 
 void EKF::imuCallback(const sensor_msgs::Imu::ConstPtr& msg){
@@ -58,6 +79,7 @@ void EKF::imuCallback(const sensor_msgs::Imu::ConstPtr& msg){
 		}
 		imuState = INITIALIZED;
 	}
+
 
 }
 
@@ -360,6 +382,8 @@ void EKF::ekfUpdateHeight(double sonarDistance){
 
 	pose.pose.position.z = X_(15);
 	posePub.publish(pose);
+
 }
+
 
 }
