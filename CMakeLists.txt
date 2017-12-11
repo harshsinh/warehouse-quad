@@ -206,3 +206,4 @@ include_directories(
 ####################
 
 add_subdirectory (src/linedetector)
+add_subdirectory (src/skulldetector)
