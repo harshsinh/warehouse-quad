@@ -10,7 +10,7 @@ EKF::EKF(ros::NodeHandle nh):currentImutime(0.0), previousImutime(0.0), imuState
 
 void EKF::subscriber(){
 
-	ros::Subscriber sub1 = nh_.subscribe("/mavros/imu/data",100, &EKF::imuCallback, this);
+	ros::Subscriber sub1 = nh_.subscribe("/mavros/imu/data_raw",100, &EKF::imuCallback, this);
 	ros::Subscriber sub2 = nh_.subscribe("/mavros/imu/mag",100, &EKF::magCallback, this);
 	ros::Subscriber sub4 = nh_.subscribe("/px4flow/opt_flow",10, &EKF::sonarCallback, this);
     ros::Subscriber state_sub = nh_.subscribe<mavros_msgs::State>("/mavros/state", 10, &EKF::stateCallback, this);
@@ -18,6 +18,7 @@ void EKF::subscriber(){
 	anglesPub = nh_.advertise<geometry_msgs::Vector3Stamped>("/ekf/rpy",10);
 	posePub = nh_.advertise<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose",10);
 	setpointPub = nh_.advertise<geometry_msgs::PoseStamped>("/mavros/setpoint_position/local",10);
+
 	ros::spin();
 }
 
@@ -114,7 +115,7 @@ void EKF::sonarCallback(const px_comm::OpticalFlow::ConstPtr& msg){
 	if (sonarDistance>5){
 		goal =0;
 	}
-	ROS_INFO("OK");
+	//ROS_INFO("OK");
 
 	if(sonarDistance>0.2 && sonarDistance<5){
 
@@ -123,18 +124,19 @@ void EKF::sonarCallback(const px_comm::OpticalFlow::ConstPtr& msg){
 			return;
 		}
 		ekfUpdateHeight(msg->ground_distance);
-		ROS_INFO("OK1");
+		//ROS_INFO("OK1");
 	}
 }
 
 void EKF::ekfInitialize(){
 	magbf.normalize();
-	X << 1, 0, 0, 0, magbf(0), magbf(1), magbf(2), 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0;
+	X << 1, 0, 0, 0, magbf(0), magbf(1), magbf(2), 0, 0, 0, 0, 0, 0, 0, 0, 0.3, 0, 0, 0;
 	sigma = MatrixXd::Identity(19,19);
 	sigma.block<4,4>(0,0) = MatrixXd::Identity(4,4);
 	sigma.block<3,3>(4,4) = 0.2*MatrixXd::Identity(3,3);
 	sigma.block<3,3>(7,7) = 0*MatrixXd::Identity(3,3);
 	sigma(15,15) = 5;
+	sigma(18,18) = 20;
 }
 
 void EKF::ekfPrediction(){
@@ -224,7 +226,6 @@ void EKF::ekfPrediction(){
 
 	Q.block<4,4>(0,0) = 0.00001*MatrixXd::Identity(4,4);
 	Q.block<3,3>(7,7) = 0.001*MatrixXd::Identity(3,3);
-
 	/*if(lidarState!=WAITING){
 		Q.block<2,2>(16,16) = deltaImutime*deltaImutime*2*MatrixXd::Identity(2,2);
 	}*/
@@ -234,6 +235,7 @@ void EKF::ekfPrediction(){
 		Q(15,15) = 0.008;
 
 	}
+	Q(18,18) = 0.2;
 
 	sigma_ = J*sigma*J.transpose() + Q;
 }
@@ -380,6 +382,8 @@ void EKF::ekfUpdateHeight(double sonarDistance){
 	pose.header.stamp = ros::Time::now();
 	pose.header.frame_id = "quadPose";
 
+	pose.pose.position.x = -X_(18);
+	pose.pose.position.y = -X_(18);
 	pose.pose.position.z = X_(15);
 	posePub.publish(pose);
 

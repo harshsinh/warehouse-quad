@@ -11,17 +11,17 @@ int main(int argc, char **argv){
 
 
 	//call ekf for height and orientation estimation
-	//HMDETECTION::EKF ekf(nh);
-	//boost::thread height(&HMDETECTION::EKF::subscriber, &ekf);
+	HMDETECTION::EKF ekf(nh);
+	boost::thread height(&HMDETECTION::EKF::subscriber, &ekf);
 
-	HMDETECTION::MARKER marker(nh);
-	boost::thread detection(&HMDETECTION::MARKER::subscriber, &marker);
+	//HMDETECTION::MARKER marker(nh);
+	//boost::thread detection(&HMDETECTION::MARKER::subscriber, &marker);
 
 	ros::Rate loopFreq(100);
 
 	while (ros::ok()){
 		loopFreq.sleep();
 	}
-
+    ros::shutdown();
 	return 0;
 }

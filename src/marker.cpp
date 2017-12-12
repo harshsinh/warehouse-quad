@@ -6,21 +6,63 @@ using namespace zbar;
 namespace HMDETECTION{
 MARKER::MARKER(ros::NodeHandle nh){
 	nh_ = nh;
-   // scanner_.set_config(zbar::ZBAR_NONE, zbar::ZBAR_CFG_ENABLE, 1);
+    scanner_.set_config(zbar::ZBAR_NONE, zbar::ZBAR_CFG_ENABLE, 1);
+
+    Mat tmp, frame;
+       VideoCapture cap;
+       if(!cap.open("http://192.168.0.107:8080/video?x.mjpeg"))
+       {
+           cout<<"Camera not found"<<endl;
+           return;
+       }
+       while ( cap.isOpened() )
+       {
+           cap >> tmp;
+           if(tmp.empty()) break;
+
+
+    cvtColor(tmp, frame, cv::COLOR_RGB2GRAY);
+
+   	/*cv_bridge::CvImageConstPtr cv_image;
+   	cv_image = cv_bridge::toCvShare(msg, "mono8");
+
+   	cv::Mat tmp=cv_image->image;
+
+   	float rescale_value=1.2;
+   	cv::Mat sig;
+   	cv::resize(tmp, sig, cvSize(0, 0), rescale_value, rescale_value);*/
+
+   	zbar::Image zbar_image(frame.cols, frame.rows, "Y800", frame.data,frame.cols * frame.rows);
+
+   	scanner_.scan(zbar_image);
+
+
+   	// iterate over all barcode readings from image
+   	for (zbar::Image::SymbolIterator symbol = zbar_image.symbol_begin(); symbol != zbar_image.symbol_end(); ++symbol)
+   	{
+
+   		std::string barcode = symbol->get_data();
+   		std::cout << barcode <<std::endl;
+
+   	}
+   	imshow("imgout.jpg",frame);
+   	waitKey(1);
+       }
 
 }
 
 void MARKER::subscriber(){
 	ros::Subscriber imageSub = nh_.subscribe("/usb_cam/image_raw", 10, &MARKER::imageCallback, this);
 	ros::spin();
+
 }
 
 void MARKER::imageCallback(const sensor_msgs::Image::ConstPtr& msg){
 
-	cv_bridge::CvImageConstPtr cv_image;
-	cv_image = cv_bridge::toCvShare(msg, "mono8");
 
-	cv::Mat tmp=cv_image->image;
+
+
+	/*cv::Mat tmp=cv_image->image;
     //crop the stereo image to single image
     cv::Rect roi;
     roi.x = 0;
@@ -39,29 +81,14 @@ void MARKER::imageCallback(const sensor_msgs::Image::ConstPtr& msg){
 
 
     cv::Mat dst=singleImg;
-    /*for(int i=0; i<1; i++){
+    for(int i=0; i<1; i++){
     	cv::pyrUp( singleImg, dst, cv::Size( tmp.cols*2, tmp.rows*2 ));
     	tmp = dst;
-    }*/
+    }
 
     imshow("imgout.jpg",dst);
-    waitKey(1);
+    waitKey(1);*/
 
-//    zbar::Image zbar_image(cv_image->image.cols, cv_image->image.rows, "Y800", cv_image->image.data,cv_image->image.cols * cv_image->image.rows);
-    zbar::Image zbar_image(tmp.cols, tmp.rows, "Y800", tmp.data,tmp.cols *tmp.rows);
-
-    scanner_.scan(zbar_image);
-
-    	// iterate over all barcode readings from image
-    	for (zbar::Image::SymbolIterator symbol = zbar_image.symbol_begin(); symbol != zbar_image.symbol_end(); ++symbol)
-    	{
-    		std::string barcode = symbol->get_data();
-    		std::cout << barcode <<std::endl;
-    	}
-
-    	zbar_image.set_data(NULL, 0);
-  //  	imshow("imgout.jpg",dst);
-//    	  waitKey(1);
 }
 
 }
