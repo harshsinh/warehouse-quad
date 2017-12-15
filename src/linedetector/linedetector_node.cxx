@@ -76,7 +76,7 @@ int main (int argc, char** argv)
 			cap >> frame;
 
 		if (!frame.empty()) {
-			
+
 			cv::Mat  thresh, hsv, blurred, opening, closing, result, temp, final_image;
 			std::vector<cv::Vec4i> lines;
 
