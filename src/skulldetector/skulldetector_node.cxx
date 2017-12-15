@@ -1,3 +1,6 @@
+
+
+
 #include "CVInclude.h"
 #include <ros/ros.h>
 #include <math.h>
@@ -109,6 +112,8 @@ void drawAllTriangles(Mat& img, const vector< vector<Point> >& contours){
             vector<Point>::iterator vertex;
             for(vertex = approxTriangle.begin(); vertex != approxTriangle.end(); ++vertex){
                 circle(img, *vertex, 3, Scalar(0, 0, 255), 1);
+								std::cout << " Area: " << contourArea(contours[i]) << std::endl;
+
             }
         }
     }
