@@ -112,12 +112,15 @@ int main (int argc, char** argv)
 	ros::NodeHandle nh;
 	ros::Rate loop_rate (50);
     pca_linedetector::line pixelLine;
+    geometry_msgs::Vector3 debug_msg;
 	image_transport::ImageTransport it(nh);
+    sensor_msgs::ImagePtr msg;
     int msg_count = -1;
 	
 	/* Publish the final line detected image and line */
-	image_transport::Publisher threshpub = it.advertise ("thresholded", 1);
+	image_transport::Publisher threshpub = it.advertise ("final_image", 1);
 	ros::Publisher pub = nh.advertise<pca_linedetector::line>("/line", 100);
+    ros::Publisher debug = nh.advertise<geometry_msgs::Vector3>("/debug", 100);
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
 
     /* Choose camera */
@@ -197,8 +200,8 @@ int main (int argc, char** argv)
             /* Slopes of the two principle components can not be same */
             if(m1_ != m2_) {
 
-                cv::line(frame, transform(0, c1_), transform(-c1_/m1_?m1_:min, 0), cv::Scalar(0, 0, 255), 2);
-                cv::line(frame, transform(0, c2_), transform(-c2_/m2_?m2_:min, 0), cv::Scalar(0, 0, 255), 2);
+                cv::line(frame, transform(0, c1_), transform(-c1_/(m1_?m1_:min), 0), cv::Scalar(0, 0, 255), 2);
+                cv::line(frame, transform(0, c2_), transform(-c2_/(m2_?m2_:min), 0), cv::Scalar(0, 0, 255), 2);
 
                 pixelLine.header.seq = ++msg_count;
                 pixelLine.header.stamp = ros::Time::now();
@@ -207,13 +210,20 @@ int main (int argc, char** argv)
                 pixelLine.c1 = c1_;
                 pixelLine.c2 = 0;
                 pixelLine.mode = 1;
+
+                debug_msg.x = m1_ * 180/3.14159;
+                debug_msg.y = c1_;
             }
 
             cv::imshow("opening", opening);
             cv::imshow("canny", result);
             cv::imshow("image", frame);
 
+            msg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
+
             pub.publish(pixelLine);
+            debug.publish(debug_msg);
+            threshpub.publish(msg);
 
             if (cv::waitKey(1) == 113)
 			break;
