@@ -16,7 +16,7 @@
 #include <iostream>
 #include <ros/ros.h>
 #include "CVInclude.h"
-#include "warehouse_quad/line.h"
+#include "pca_linedetector/line.h"
 #include <geometry_msgs/Vector3.h>
 
 #define min 0.00001
@@ -111,13 +111,13 @@ int main (int argc, char** argv)
 	ros::init (argc, argv, "linedetector_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate (50);
-    warehouse_quad::line pixelLine;
+    pca_linedetector::line pixelLine;
 	image_transport::ImageTransport it(nh);
     int msg_count = -1;
 	
 	/* Publish the final line detected image and line */
 	image_transport::Publisher threshpub = it.advertise ("thresholded", 1);
-	ros::Publisher pub = nh.advertise<warehouse_quad::line>("/line", 100);
+	ros::Publisher pub = nh.advertise<pca_linedetector::line>("/line", 100);
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
 
     /* Choose camera */
