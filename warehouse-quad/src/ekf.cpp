@@ -4,12 +4,12 @@ using namespace std;
 
 namespace HMDETECTION{
 
-EKF::EKF(ros::NodeHandle nh):currentImutime(0.0), previousImutime(0.0), imuState(WAITING), magState(WAITING), imuSeq(0), magSeq(0), ekfCurrentState(EKF_WAITING),X(19), X_(19), sigma(19,19), sigma_(19,19), sonarState(WAITING){
-	nh_ = nh;
+EKF::EKF():currentImutime(0.0), previousImutime(0.0), imuState(WAITING), magState(WAITING), imuSeq(0), magSeq(0), ekfCurrentState(EKF_WAITING),X(19), X_(19), sigma(19,19), sigma_(19,19), sonarState(WAITING){
 }
 
 void EKF::subscriber(){
 
+	ros::NodeHandle nh_;
 	ros::Subscriber sub1 = nh_.subscribe("/mavros/imu/data_raw",100, &EKF::imuCallback, this);
 	ros::Subscriber sub2 = nh_.subscribe("/mavros/imu/mag",100, &EKF::magCallback, this);
 	ros::Subscriber sub4 = nh_.subscribe("/px4flow/opt_flow",10, &EKF::sonarCallback, this);
@@ -37,7 +37,7 @@ void EKF::stateCallback(const mavros_msgs::State::ConstPtr& msg){
 	setPoint.pose.position.y = 0;
 	setPoint.pose.position.z = height;
 
-	setpointPub.publish(setPoint);
+	//setpointPub.publish(setPoint);
 
 }
 
@@ -104,6 +104,9 @@ void EKF::magCallback(const sensor_msgs::MagneticField::ConstPtr& msg){
 
 	if(ekfCurrentState==EKF_INITIALIZED){
 		ekfUpdate(); //ekf update step
+		if(sonarState==INITIALIZED){
+			ekfUpdateHeight(sonarRaw);
+		}
 	}
 }
 
@@ -123,7 +126,7 @@ void EKF::sonarCallback(const px_comm::OpticalFlow::ConstPtr& msg){
 			sonarState=INITIALIZED;
 			return;
 		}
-		ekfUpdateHeight(msg->ground_distance);
+		sonarRaw = msg->ground_distance;
 		//ROS_INFO("OK1");
 	}
 }
@@ -232,10 +235,10 @@ void EKF::ekfPrediction(){
 
 	if(sonarState!=WAITING){
 		Q(18,18) = 10*deltaImutime*deltaImutime;
-		Q(15,15) = 0.008;
+		Q(15,15) = 0.08;
 
 	}
-	Q(18,18) = 0.2;
+	//Q(18,18) = 0.008;
 
 	sigma_ = J*sigma*J.transpose() + Q;
 }
@@ -382,8 +385,8 @@ void EKF::ekfUpdateHeight(double sonarDistance){
 	pose.header.stamp = ros::Time::now();
 	pose.header.frame_id = "quadPose";
 
-	pose.pose.position.x = -X_(18);
-	pose.pose.position.y = -X_(18);
+	pose.pose.position.x = X_(18);
+	pose.pose.position.y = X_(18);
 	pose.pose.position.z = X_(15);
 	posePub.publish(pose);
 

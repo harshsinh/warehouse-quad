@@ -29,7 +29,7 @@ using namespace Eigen;
 namespace HMDETECTION{
 class EKF{
 public:
-	EKF(ros::NodeHandle nh);
+	EKF();
 	void subscriber();
 	enum sensorState{WAITING=0, INITIALIZED=1, ACQUIRED=2};
 	enum ekfState{EKF_WAITING=0, EKF_INITIALIZED=1, EKF_PREDICTION=2, EKF_UPDATE=3};
@@ -46,7 +46,6 @@ private:
 
 	ros::Publisher anglesPub, accelefPub, posePub, setpointPub;
 
-	ros::NodeHandle nh_;
 
 	Vector3d accelbf;
 	Vector3d magbf;
@@ -65,7 +64,8 @@ private:
 	double roll, pitch, yaw;
 	sonar sonarVal;
 
-	double height;
+	double height, sonarRaw;
+
 
 	ros::Time time;
 };

@@ -7,15 +7,15 @@
 int main(int argc, char **argv){
 
 	ros::init(argc, argv, "detection");
-	ros::NodeHandle nh;
+	ros::start();
 
 
 	//call ekf for height and orientation estimation
-	HMDETECTION::EKF ekf(nh);
+	HMDETECTION::EKF ekf;
 	boost::thread height(&HMDETECTION::EKF::subscriber, &ekf);
 
-	//HMDETECTION::MARKER marker(nh);
-	//boost::thread detection(&HMDETECTION::MARKER::subscriber, &marker);
+	HMDETECTION::MARKER marker;
+	boost::thread detection(&HMDETECTION::MARKER::subscriber, &marker);
 
 	ros::Rate loopFreq(100);
 

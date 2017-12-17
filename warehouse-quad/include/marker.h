@@ -12,6 +12,8 @@
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
 
+#include <warehouse_quad/markerInfo.h>
+
 #include<opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 #include "opencv2/imgproc/imgproc.hpp"
@@ -19,15 +21,19 @@
 
 #include "zbar.h"
 
+using namespace std;
+
 namespace HMDETECTION{
 class MARKER{
 public:
-	MARKER(ros::NodeHandle nh);
+	MARKER();
 	void subscriber();
 	void imageCallback(const sensor_msgs::Image::ConstPtr& msg);
 private:
-	ros::NodeHandle nh_;
     zbar::ImageScanner scanner_;
+    warehouse_quad::markerInfo qr;
+    ros::Publisher markerPub;
+    vector <string> barcodes;
 
 };
 }
