@@ -80,7 +80,8 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
 
     std::cout << lines << std::endl;
     std::cout << "\n";
-    std::cout << "slope 1 : " << std::atan2(lines[0], 1) * 180/3.1415 << std::endl;
+    std::cout << "slope : " << std::atan2(lines[0], 1) * 180/3.1415 << "\t"
+              << "inter : " << lines[1] << std::endl;
     std::cout << "\n";
     return (lines);
 }
