@@ -1,3 +1,15 @@
+/*****************************************************************************
+ * 
+ * Publishers : /lines -- warehouse_quad::line
+ *                        line.slope -- slope of major line
+ *                        line.c1(c2)-- intercepts
+ *                        line.mode  -- MODE of operation
+ * Publishers : /detected -- sensor_mags/Image  : detected Image with line
+ * Subscriber : /usb_cam/image_raw -- Input Image.
+ * Origin : (0, 0) at image center
+ * x-axis is vertically up and y-axis is 90 deg counter-clockwise from x.
+ * 
+ ****************************************************************************/
 #include <cmath>
 #include <vector>
 #include <string>
@@ -7,11 +19,13 @@
 #include "warehouse_quad/line.h"
 #include <geometry_msgs/Vector3.h>
 
+#define min 0.00001
+
 /* Frame and Camera */
 cv::Mat frame;
 cv::VideoCapture cap;
 
-/* Colors */
+/* [TUNABLE] Color Thresh */
 auto yellow_low  = cv::Scalar(20, 100, 100);
 auto yellow_high = cv::Scalar(30, 255, 255);
 
@@ -24,7 +38,7 @@ void imcallback (const sensor_msgs::ImageConstPtr& msg)
 
 }
 
-/* cv::Points from new coordinate system */
+/* Transform from new coordinate system */
 cv::Point transform (double x, double y)
 {
 
@@ -38,6 +52,7 @@ cv::Point transform (double x, double y)
 cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
 {
 
+    /* Safe gaurd for empty frames */
     if(data_points.size() == 0)
         return (cv::Vec4i(-1, -1, -1, -1));
 
@@ -46,6 +61,7 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
     cv::Mat data_transp(2, data_points.size(), CV_64F, cv::Scalar::all(0));
     cv::Mat data(data_points.size(), 2, CV_64F, cv::Scalar::all(0));
     
+    /* Data formatting for PCA */
     int i = 0;
     for (std::vector<cv::Vec2i>::iterator it = data_points.begin(); it != data_points.end(); ++it) {
 
@@ -65,24 +81,26 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
 
         double * veci = eigenvec.ptr<double>(i);
 
+        /* Angle for the vector constrained within 0-180 */
         if (veci[1] < 0) {
 
             veci[0] = -veci[0];
             veci[1] = -veci[1];
         }
 
-        lines[2*i] = veci[1]/(veci[0]?veci[0]:0.0001);
-        lines[2*i+1] = mean[1] - (lines[i] * mean[0]);
+        /* Slope and Intercept calculation */
+        lines[2*i] = veci[1]/(veci[0]?veci[0]:min);
+        lines[2*i + 1] = mean[1] - (lines[2*i] * mean[0]);
 
         std::cout << i << std::endl;
 
     }
 
     std::cout << lines << std::endl;
-    std::cout << "\n";
-    std::cout << "slope : " << std::atan2(lines[0], 1) * 180/3.1415 << "\t"
+    std::cout << "slope major : " << std::atan2(lines[0], 1) * 180/3.1415 << "\t"
               << "inter : " << lines[1] << std::endl;
-    std::cout << "\n";
+    std::cout << "slope minor : " << std::atan2(lines[2], 1) * 180/3.1415 << "\t"
+              << "inter : " << lines[3] << std::endl;
     return (lines);
 }
 
@@ -179,8 +197,8 @@ int main (int argc, char** argv)
             /* Slopes of the two principle components can not be same */
             if(m1_ != m2_) {
 
-                cv::line(frame, transform(0, c1_), transform(-c1_/m1_?m1_:0.01, 0), cv::Scalar(0, 0, 255), 2);
-                cv::line(frame, transform(0, c2_), transform(-c2_/m2_?m2_:0.01, 0), cv::Scalar(0, 0, 255), 2);
+                cv::line(frame, transform(0, c1_), transform(-c1_/m1_?m1_:min, 0), cv::Scalar(0, 0, 255), 2);
+                cv::line(frame, transform(0, c2_), transform(-c2_/m2_?m2_:min, 0), cv::Scalar(0, 0, 255), 2);
 
                 pixelLine.header.seq = ++msg_count;
                 pixelLine.header.stamp = ros::Time::now();
