@@ -28,8 +28,8 @@ void imcallback (const sensor_msgs::ImageConstPtr& msg)
 cv::Point transform (double x, double y)
 {
 
-    int x_ = 128 - x;
-    int y_ = 128 - y;
+    int x_ = 128 - y;
+    int y_ = 128 - x;
 
     return cv::Point(x_, y_);
 }
@@ -71,8 +71,8 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
             veci[1] = -veci[1];
         }
 
-        lines[i] = veci[1]/(veci[0]?veci[0]:0.0001);
-        lines[i+1] = mean[1] - (lines[i] * mean[0]);
+        lines[2*i] = veci[1]/(veci[0]?veci[0]:0.0001);
+        lines[2*i+1] = mean[1] - (lines[i] * mean[0]);
 
         std::cout << i << std::endl;
 
@@ -186,7 +186,7 @@ int main (int argc, char** argv)
                 pixelLine.header.stamp = ros::Time::now();
                 pixelLine.header.frame_id = "0";
                 pixelLine.slope = m1_;
-                pixelLine.c1 = 0;
+                pixelLine.c1 = c1_;
                 pixelLine.c2 = 0;
                 pixelLine.mode = 1;
             }
