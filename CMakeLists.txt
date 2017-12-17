@@ -14,6 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   image_transport
   cv_bridge
+  message_generation
+  message_runtime
 )
 
 ## System dependencies are found with CMake's conventions
@@ -107,7 +109,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES warehouse_quad
-#  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs
+#  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs message_generation message_runtime
 #  DEPENDS system_lib
 )
 

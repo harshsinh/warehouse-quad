@@ -100,7 +100,7 @@ int main (int argc, char** argv)
 	
 	/* Publish the final line detected image and line */
 	image_transport::Publisher threshpub = it.advertise ("thresholded", 1);
-	ros::Publisher pub = nh.advertise<geometry_msgs::Vector3>("/line", 100);
+	ros::Publisher pub = nh.advertise<warehouse_quad::line>("/line", 100);
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
 
     /* Choose camera */
@@ -185,7 +185,7 @@ int main (int argc, char** argv)
 
                 pixelLine.header.seq = ++msg_count;
                 pixelLine.header.stamp = ros::Time::now();
-                pixelLine.header.frame_id = 0;
+                pixelLine.header.frame_id = "0";
                 pixelLine.slope = m1_;
                 pixelLine.c1 = 0;
                 pixelLine.c2 = 0;
@@ -209,9 +209,9 @@ int main (int argc, char** argv)
             slic.display_contours(frame, cv::Vec3b (0, 0, 255));
 /*******************************************************************/
 
-            cv::imshow("image", frame);
             cv::imshow("opening", opening);
             cv::imshow("canny", result);
+            cv::imshow("image", frame);
 
             pub.publish(pixelLine);
 
