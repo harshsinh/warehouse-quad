@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>warehouse_quad</name>
+  <name>linedetector</name>
   <version>0.1.0</version>
   <description>The warehouse_quad package</description>
 

@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(warehouse_quad)
-
-## Compile as C++11, supported in ROS Kinetic and newer
+project(linedetector)
+# Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
@@ -120,6 +119,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories (include/${PROJECT_NAME})
 include_directories(
+  include/warehouse_quad
   ${catkin_INCLUDE_DIRS}
 )
 
