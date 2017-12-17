@@ -128,6 +128,7 @@ int main (int argc, char** argv)
 	image_transport::ImageTransport it(nh);
     sensor_msgs::ImagePtr msg;
     int msg_count = -1;
+    int cnts = 0;
 	
 	/* Publish the final line detected image and line */
 	image_transport::Publisher threshpub = it.advertise ("final_image", 1);
@@ -141,7 +142,7 @@ int main (int argc, char** argv)
     /* Parameters for Regular Grid */
     int n_grid = 16;
     auto image_size = cv::Size(256, 256);
-    auto grid_size = image_size/n_grid;
+    // auto grid_size = image_size/n_grid;
 
     /* Image size, Parameters for SLIC */
     int nr_superpixels = 100;
@@ -225,15 +226,19 @@ int main (int argc, char** argv)
                 debug_msg.x = m1_ * 180/3.14159;
                 debug_msg.y = c1_;
 
-                cv::imshow("opening", opening);
-                cv::imshow("canny", result);
-                cv::imshow("image", frame);
-
-                msg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
+                // cv::imshow("opening", opening);
+                // cv::imshow("canny", result);
+                // cv::imshow("image", frame);
+                cnts = 0;
+                msg = cv_bridge::CvImage (std_msgs::Header(), "mono8", opening).toImageMsg();
 
             }
 
             else {
+
+                ++cnts;
+                if (cnts < 10)
+                    continue;
 
                 pixelLine.header.seq = ++msg_count;
                 pixelLine.header.stamp = ros::Time::now();
