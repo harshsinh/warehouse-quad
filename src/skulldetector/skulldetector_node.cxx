@@ -1,7 +1,4 @@
-
-
-
-#include "CVInclude.h"
+ #include "CVInclude.h"
 #include <ros/ros.h>
 #include <math.h>
 #include <vector>
@@ -16,20 +13,20 @@ using namespace std;
 
 VideoCapture cap;
 
-void drawStuff();
+void drawStuff(); //function to
 void drawAllTriangles(Mat&, const vector< vector<Point> >&);
 
 Mat img_rgb,img_gray,canny_output,drawing,blurred,thresh1,closing,opening,temp;
+
+
 void imcallback (const sensor_msgs::ImageConstPtr& msg)
 {
-
 	img_rgb = cv_bridge::toCvShare (msg) -> image;
 	return;
-
 }
 
-int thresh = 100;
-int max_thresh = 255;
+// int thresh = 100;
+// int max_thresh = 255;
 
 int main (int argc, char** argv)
 {
@@ -46,21 +43,30 @@ int main (int argc, char** argv)
 	ros::Publisher pub = nh.advertise<geometry_msgs::Vector3>("/line", 100);
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
 
-int camera = argv [1][0] - 48;
+bool check=cap.open("http://192.168.42.129:8080/video?x.mjpeg");
 
-if (camera >= 0 && camera < 10) {
-
-  std::cout << camera << std::endl;
-  cap.open (camera);
-
-  if (!cap.isOpened()) {
-
-    std::cout << "Unable to open camera " << camera << std::endl;
-    ROS_ERROR_STREAM ("Unable to open camera");
-    return -1;
-
-  }
+if(!check)
+{
+        cout<<"camera not found"<<endl;
+        return -1;
 }
+
+while ( cap.isOpened()& ros::ok())
+
+//int camera = argv [1][0] - 48;
+
+//if (camera >= 0 && camera < 10) {
+
+//  std::cout << camera << std::endl;
+  //cap.open (camera);
+
+  //if (!cap.isOpened()) {
+
+    //std::cout << "Unable to open camera " << camera << std::endl;
+    ///ROS_ERROR_STREAM ("Unable to open camera");
+    //return -1;
+
+  //}
 
 while (nh.ok()){
 
@@ -101,6 +107,7 @@ void drawStuff(){
 
     drawAllTriangles(drawing,contours);
     imshow("Triangles",drawing);
+
 }
 
 void drawAllTriangles(Mat& img, const vector< vector<Point> >& contours){
