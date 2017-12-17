@@ -24,6 +24,16 @@ void imcallback (const sensor_msgs::ImageConstPtr& msg)
 
 }
 
+/* cv::Points from new coordinate system */
+cv::Point transform (double x, double y)
+{
+
+    int x_ = 128 - x;
+    int y_ = 128 - y;
+
+    return cv::Point(x_, y_);
+}
+
 /* PCA : returns lines along first and second principle components */
 cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
 {
@@ -31,7 +41,7 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
     if(data_points.size() == 0)
         return (cv::Vec4i(-1, -1, -1, -1));
 
-    cv::Vec4f vectors;
+    cv::Vec4f lines;
     auto mean = cv::mean(data_points);
     cv::Mat data_transp(2, data_points.size(), CV_64F, cv::Scalar::all(0));
     cv::Mat data(data_points.size(), 2, CV_64F, cv::Scalar::all(0));
@@ -47,29 +57,32 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
         ++i;
     }
 
-    // std::cout << data << std::endl;
-    // std::cout << "***" << std::endl;
-    // std::cout << data_transp << std::endl;
     cv::Mat cov = data_transp * data;
-    // std::cout << "covariance : " << cov << std::endl;
     cv::Mat eigenval, eigenvec;
     cv::eigen(cov, eigenval, eigenvec);
-    // std::cout << "eigen vectors : " << eigenvec << std::endl;
-    // std::cout << "***********************************************" << std::endl;
     
     for(int i = 0; i < eigenvec.rows; ++i) {
 
-        const double * veci = eigenvec.ptr<double>(i);
-        std::cout << "veci 1 : " << veci[0] << "veci 2 : " << veci[1] << std::endl;
+        double * veci = eigenvec.ptr<double>(i);
 
-        vectors[i] = veci[1]/(veci[0]?veci[0]:0.0001);
-        vectors[i+1] = mean[1] - (vectors[i] * mean[0]);
+        if (veci[1] < 0) {
+
+            veci[0] = -veci[0];
+            veci[1] = -veci[1];
+        }
+
+        lines[i] = veci[1]/(veci[0]?veci[0]:0.0001);
+        lines[i+1] = mean[1] - (lines[i] * mean[0]);
+
+        std::cout << i << std::endl;
+
     }
 
-    std::cout << vectors << std::endl;
-    std::cout << "slope 1 : " << std::atan2(vectors[1], vectors[0]) * 180/3.1415 << "\t"
-              << "slope 2 : " << std::atan2(vectors[3], vectors[2]) * 180/3.1415 << std::endl;
-    return (vectors);
+    std::cout << lines << std::endl;
+    std::cout << "\n";
+    std::cout << "slope 1 : " << std::atan2(lines[0], 1) * 180/3.1415 << std::endl;
+    std::cout << "\n";
+    return (lines);
 }
 
 int main (int argc, char** argv)
@@ -164,8 +177,9 @@ int main (int argc, char** argv)
             /* Slopes of the two principle components can not be same */
             if(m1_ != m2_) {
 
-                cv::line(frame, cv::Point(0, c1_), cv::Point(-c1_/m1_?m1_:0.01, 0), cv::Scalar(0, 0, 255), 2);
-                cv::line(frame, cv::Point(0, c2_), cv::Point(-c2_/m2_?m2_:0.01, 0), cv::Scalar(0, 0, 255), 2);
+                cv::line(frame, transform(0, c1_), transform(-c1_/m1_?m1_:0.01, 0), cv::Scalar(0, 0, 255), 2);
+                cv::line(frame, transform(0, c2_), transform(-c2_/m2_?m2_:0.01, 0), cv::Scalar(0, 0, 255), 2);
+
             }
 /*******************************************************************/
 /* SLIC not good, fails on mean calculation */
