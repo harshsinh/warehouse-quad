@@ -1,5 +1,4 @@
 #include <cmath>
-#include "slic.h"
 #include <vector>
 #include <string>
 #include <iostream>
@@ -191,23 +190,6 @@ int main (int argc, char** argv)
                 pixelLine.c2 = 0;
                 pixelLine.mode = 1;
             }
-/*******************************************************************/
-/* SLIC not good, fails on mean calculation */
-            /*auto lab_image = frame.clone();
-            cv::cvtColor (frame, lab_image, CV_BGR2Lab);*/
-            
-            /* Number of super-pixels and weight factors *
-            int w = frame.rows, h = frame.cols;
-            double step = std::sqrt((w * h) / nr_superpixels);
-
-            /* Perform SLIC *
-            Slic slic;
-            slic.generate_superpixels (lab_image, step, nc);
-            slic.create_connectivity (lab_image);
-
-            /* Display the results *
-            slic.display_contours(frame, cv::Vec3b (0, 0, 255));
-/*******************************************************************/
 
             cv::imshow("opening", opening);
             cv::imshow("canny", result);
