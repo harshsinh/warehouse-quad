@@ -142,7 +142,7 @@ int main (int argc, char** argv)
     /* Parameters for Regular Grid */
     int n_grid = 16;
     auto image_size = cv::Size(256, 256);
-    // auto grid_size = image_size/n_grid;
+    auto grid_size = cv::Size(image_size.width/n_grid, image_size.height/n_grid);
 
     /* Image size, Parameters for SLIC */
     int nr_superpixels = 100;
@@ -226,9 +226,9 @@ int main (int argc, char** argv)
                 debug_msg.x = m1_ * 180/3.14159;
                 debug_msg.y = c1_;
 
-                // cv::imshow("opening", opening);
-                // cv::imshow("canny", result);
-                // cv::imshow("image", frame);
+                cv::imshow("opening", opening);
+                cv::imshow("canny", result);
+                cv::imshow("image", frame);
                 cnts = 0;
                 msg = cv_bridge::CvImage (std_msgs::Header(), "mono8", opening).toImageMsg();
 
