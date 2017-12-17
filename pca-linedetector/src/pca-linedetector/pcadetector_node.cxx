@@ -20,14 +20,15 @@
 #include <geometry_msgs/Vector3.h>
 
 #define min 0.00001
+#define EIGMIN 0.25*1e6
 
 /* Frame and Camera */
 cv::Mat frame;
 cv::VideoCapture cap;
 
 /* [TUNABLE] Color Thresh */
-auto yellow_low  = cv::Scalar(20, 100, 100);
-auto yellow_high = cv::Scalar(30, 255, 255);
+auto yellow_low  = cv::Scalar(20, 80, 155);
+auto yellow_high = cv::Scalar(40, 255, 255);
 
 /* Call back function for image */
 void imcallback (const sensor_msgs::ImageConstPtr& msg)
@@ -53,10 +54,12 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
 {
 
     /* Safe gaurd for empty frames */
+    std::cout << "lol" << data_points.size() << std::endl;
     if(data_points.size() == 0)
         return (cv::Vec4i(-1, -1, -1, -1));
 
     cv::Vec4f lines;
+    std::vector<double> values;
     auto mean = cv::mean(data_points);
     cv::Mat data_transp(2, data_points.size(), CV_64F, cv::Scalar::all(0));
     cv::Mat data(data_points.size(), 2, CV_64F, cv::Scalar::all(0));
@@ -80,6 +83,7 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
     for(int i = 0; i < eigenvec.rows; ++i) {
 
         double * veci = eigenvec.ptr<double>(i);
+        double * eigval = eigenval.ptr<double>(i);
 
         /* Angle for the vector constrained within 0-180 */
         if (veci[1] < 0) {
@@ -92,15 +96,23 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
         lines[2*i] = veci[1]/(veci[0]?veci[0]:min);
         lines[2*i + 1] = mean[1] - (lines[2*i] * mean[0]);
 
+        values.push_back(eigval[0]);
+
         std::cout << i << std::endl;
 
     }
+
+    if (values[0] < EIGMIN)
+        return (cv::Vec4i(-1, -1, -1, -1));
 
     std::cout << lines << std::endl;
     std::cout << "slope major : " << std::atan2(lines[0], 1) * 180/3.1415 << "\t"
               << "inter : " << lines[1] << std::endl;
     std::cout << "slope minor : " << std::atan2(lines[2], 1) * 180/3.1415 << "\t"
               << "inter : " << lines[3] << std::endl;
+
+    std::cout << "eigen val : " << values[0] << " : " << values[1] << std::endl;
+
     return (lines);
 }
 
@@ -169,6 +181,7 @@ int main (int argc, char** argv)
 			cv::GaussianBlur (thresh, blurred,  cv::Size(11, 11), 0, 0);
 			cv::morphologyEx (blurred, closing, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2, 2),  cv::Point(-1, -1)));
 			cv::morphologyEx (closing, opening, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2, 2),  cv::Point(-1, -1)));
+            // cv::medianBlur (opening, opening, 5);
             cv::Canny (thresh, result, 50, 150, 3);
 
             cv::HoughLinesP(result, lines, 5, CV_PI/180, 1, 1);
@@ -177,8 +190,6 @@ int main (int argc, char** argv)
             for (std::vector<cv::Vec4i>::iterator it = lines.begin(); it != lines.end(); ++it) {
 
                 cv::Vec4i l = *it;
-
-                // cv::line (frame, cv::Point (l[0], l[1]), cv::Point (l[2], l[3]), cv::Scalar(255, 0, 0), 3, CV_AA);
                 
                 // Transformation from default coordinates
 				int x1_, y1_, x2_, y2_;
@@ -213,13 +224,26 @@ int main (int argc, char** argv)
 
                 debug_msg.x = m1_ * 180/3.14159;
                 debug_msg.y = c1_;
+
+                cv::imshow("opening", opening);
+                cv::imshow("canny", result);
+                cv::imshow("image", frame);
+
+                msg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
+
             }
 
-            cv::imshow("opening", opening);
-            cv::imshow("canny", result);
-            cv::imshow("image", frame);
+            else {
 
-            msg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
+                pixelLine.header.seq = ++msg_count;
+                pixelLine.header.stamp = ros::Time::now();
+                pixelLine.header.frame_id = "0";
+                pixelLine.slope = m1_;
+                pixelLine.c1 = c1_;
+                pixelLine.c2 = 0;
+                pixelLine.mode = 0;
+
+            };
 
             pub.publish(pixelLine);
             debug.publish(debug_msg);
