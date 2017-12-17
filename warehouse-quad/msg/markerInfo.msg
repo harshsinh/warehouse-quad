@@ -1,0 +1,2 @@
+bool detect
+string marker
