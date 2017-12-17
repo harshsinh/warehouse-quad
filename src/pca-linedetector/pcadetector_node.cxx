@@ -1,10 +1,11 @@
 #include <cmath>
+#include "slic.h"
 #include <vector>
 #include <string>
 #include <iostream>
 #include <ros/ros.h>
 #include "CVInclude.h"
-#include "slic.h"
+#include "warehouse_quad/line.h"
 #include <geometry_msgs/Vector3.h>
 
 /* Frame and Camera */
@@ -93,8 +94,9 @@ int main (int argc, char** argv)
 	ros::init (argc, argv, "linedetector_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate (50);
-	geometry_msgs::Vector3 pixelLine;
+    warehouse_quad::line pixelLine;
 	image_transport::ImageTransport it(nh);
+    int msg_count = -1;
 	
 	/* Publish the final line detected image and line */
 	image_transport::Publisher threshpub = it.advertise ("thresholded", 1);
@@ -181,6 +183,13 @@ int main (int argc, char** argv)
                 cv::line(frame, transform(0, c1_), transform(-c1_/m1_?m1_:0.01, 0), cv::Scalar(0, 0, 255), 2);
                 cv::line(frame, transform(0, c2_), transform(-c2_/m2_?m2_:0.01, 0), cv::Scalar(0, 0, 255), 2);
 
+                pixelLine.header.seq = ++msg_count;
+                pixelLine.header.stamp = ros::Time::now();
+                pixelLine.header.frame_id = 0;
+                pixelLine.slope = m1_;
+                pixelLine.c1 = 0;
+                pixelLine.c2 = 0;
+                pixelLine.mode = 1;
             }
 /*******************************************************************/
 /* SLIC not good, fails on mean calculation */
