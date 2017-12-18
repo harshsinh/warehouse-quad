@@ -1,4 +1,4 @@
- #include "CVInclude.h"
+#include "CVInclude.h"
 #include <ros/ros.h>
 #include <math.h>
 #include <vector>
@@ -13,15 +13,15 @@ using namespace std;
 
 VideoCapture cap;
 
-void drawStuff(); //function to
+void drawStuff();
 void drawAllTriangles(Mat&, const vector< vector<Point> >&);
 
-Mat img_rgb,img_gray,canny_output,drawing,blurred,thresh1,closing,opening,temp;
+Mat frame,img_gray,canny_output,drawing,blurred,thresh1,closing,opening,temp;
 
-
+//frame from callback
 void imcallback (const sensor_msgs::ImageConstPtr& msg)
 {
-	img_rgb = cv_bridge::toCvShare (msg) -> image;
+	frame = cv_bridge::toCvShare (msg) -> image;
 	return;
 }
 
@@ -35,21 +35,22 @@ int main (int argc, char** argv)
 	ros::init (argc, argv, "skulldetector_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate (50);
-	 geometry_msgs::Vector3 pixelLine;
+	geometry_msgs::Vector3 pixelLine;
 	image_transport::ImageTransport it(nh);
 
 	// Publish the final line detected image and line
-	 image_transport::Publisher threshpub = it.advertise ("thresholded", 1);
+	image_transport::Publisher threshpub = it.advertise ("thresholded", 1);
 	ros::Publisher pub = nh.advertise<geometry_msgs::Vector3>("/line", 100);
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
 
+ //check for ip camera
 bool check=cap.open("http://192.168.42.129:8080/video?x.mjpeg");
 
-if(!check)
-{
+  if(!check)
+      {
         cout<<"camera not found"<<endl;
         return -1;
-}
+      }
 
 while ( cap.isOpened()& ros::ok())
 
@@ -71,23 +72,24 @@ while ( cap.isOpened()& ros::ok())
 while (nh.ok()){
 
   if (cap.isOpened())
-    cap >> img_rgb;
+    cap >> frame;
 
-  if (!img_rgb.empty()) {
+  if (!frame.empty()) {
 
 
-    // cvtColor(img_rgb,img_gray,CV_RGB2GRAY);
-     cvtColor (img_rgb, img_gray, CV_BGR2HSV);
+    // cvtColor(frame,img_gray,CV_RGB2GRAY);
+     cvtColor (frame, img_gray, CV_BGR2HSV);
      inRange (img_gray,  Scalar(20, 80, 100),  Scalar(40, 255, 255), thresh1);
      GaussianBlur (thresh1, blurred,   Size(11, 11), 0, 0);
-      threshold (blurred, thresh1, 127, 255, CV_THRESH_BINARY);
+     threshold (blurred, thresh1, 127, 255, CV_THRESH_BINARY);
      morphologyEx (thresh1, closing,  MORPH_CLOSE,  getStructuringElement( MORPH_RECT,  Size(2, 2),   Point(-1, -1)));
      morphologyEx (closing, opening,  MORPH_OPEN,  getStructuringElement( MORPH_RECT,  Size(2, 2),   Point(-1, -1)));
      Canny (thresh1, temp, 50, 150, 3);
-    imshow("InputImage",img_rgb);
-    drawStuff();
-    if (cv::waitKey(1) == 113)
+     imshow("InputImage",frame);
+     drawStuff();
+  if (cv::waitKey(1) == 113)
     break;
+		
   }
     ros::spinOnce();
     loop_rate.sleep();
