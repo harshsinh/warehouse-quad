@@ -16,10 +16,12 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   message_generation
   message_runtime
+  cmake_modules
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package (Eigen REQUIRED)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -122,6 +124,7 @@ catkin_package(
 include_directories (include/${PROJECT_NAME})
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  ${Eigen_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
