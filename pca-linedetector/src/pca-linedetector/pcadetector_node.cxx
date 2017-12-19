@@ -151,6 +151,7 @@ bool median_filter (int distance, int * c1_prev)
 
 	else{
 			std::cout <<"okay" <<std::endl;
+
 		    std::sort(sonar_set_copy.data(), sonar_set_copy.data()+sonar_set_copy.size()); //arranging the 400 set of data in increasing order
 
 		    if((distance > (sonar_set_copy[5]-threshold))&&(distance < (sonar_set_copy[5]+threshold))){ //checking if the current value is in a limit of the median value
@@ -280,6 +281,7 @@ int main (int argc, char** argv)
                 pixelLine.slope = m1_;
 		std::cout << "ok" << std::endl;
 //                pixelLine.c1 = (median_filter(c1_, &c1_prev) ? c1_ : c1_prev);
+                //pixelLine.c1 = (median_filter(c1_, &c1_prev) ? c1_ : c1_prev);
 		pixelLine.c1 = c1_;
                 pixelLine.c2 = 0;
                 pixelLine.mode = 1;
@@ -311,8 +313,9 @@ int main (int argc, char** argv)
 
             };
 
+            pub.publish(pixelLine);
+            debug.publish(debug_msg);
             threshpub.publish(msg);
-		pub.publish(pixelLine);
 
             if (cv::waitKey(1) == 113)
 			break;

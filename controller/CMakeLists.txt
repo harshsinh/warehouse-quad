@@ -14,7 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   tf
-)
+  warehouse_quad
+  )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -106,9 +107,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+	#  INCLUDE_DIRS include
 #  LIBRARIES controller
-#  CATKIN_DEPENDS geometry_msgs mavros_msgs roscpp sensor_msgs std_msgs tf
+  CATKIN_DEPENDS geometry_msgs mavros_msgs roscpp sensor_msgs std_msgs tf
 #  DEPENDS system_lib
 )
 
