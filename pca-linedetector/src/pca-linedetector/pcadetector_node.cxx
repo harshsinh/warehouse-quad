@@ -13,6 +13,8 @@
 #include <cmath>
 #include <vector>
 #include <string>
+#include <Eigen/Dense>
+#include <Eigen/Geometry>
 #include <iostream>
 #include <ros/ros.h>
 #include "CVInclude.h"
@@ -21,6 +23,14 @@
 
 #define min 0.00001
 #define EIGMIN 0.25*1e6
+
+using namespace Eigen;
+
+double threshold = 20;
+double set_count = 0.0;
+VectorXf sonar_set;
+int first_val_check = 0;
+double sonarVal;
 
 /* Frame and Camera */
 cv::Mat frame;
@@ -116,6 +126,51 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
     return (lines);
 }
 
+bool median_filter (int distance, int * c1_prev)
+{
+
+    int i;
+	VectorXf sonar_set_copy(10);
+
+	if (set_count==0){
+		sonar_set.setZero();
+	}
+	sonar_set_copy = sonar_set;
+	if (set_count < 10){
+		//getting first 40 set of sonar data
+		sonar_set_copy[set_count] = distance;
+		sonar_set[set_count] = distance;
+		set_count++;
+		sonarVal = distance;
+		if(set_count==9){
+			first_val_check = 1;
+		}
+	}
+
+	else{
+
+		    std::sort(sonar_set_copy.data(), sonar_set_copy.data()+sonar_set_copy.size()); //arranging the 400 set of data in increasing order
+
+		    if((distance > (sonar_set_copy[5]-threshold))&&(distance < (sonar_set_copy[5]+threshold))){ //checking if the current value is in a limit of the median value
+			    //if so then return the current sonar data
+			    sonarVal = distance;
+			    for(i=0;i<9;i++){
+			    sonar_set[i] = sonar_set[i+1]; // updating the sonar set for next 400 data
+			}
+            *c1_prev = distance;
+		    return true;
+		}
+		
+        else{
+
+		    return false;
+		}
+	}
+
+    sonar_set[9] = distance;
+    return false;
+}
+
 int main (int argc, char** argv)
 {
 
@@ -129,6 +184,8 @@ int main (int argc, char** argv)
     sensor_msgs::ImagePtr msg;
     int msg_count = -1;
     int cnts = 0;
+
+    int c1_prev = 0;
 	
 	/* Publish the final line detected image and line */
 	image_transport::Publisher threshpub = it.advertise ("final_image", 1);
@@ -219,7 +276,7 @@ int main (int argc, char** argv)
                 pixelLine.header.stamp = ros::Time::now();
                 pixelLine.header.frame_id = "0";
                 pixelLine.slope = m1_;
-                pixelLine.c1 = c1_;
+                pixelLine.c1 = (median_filter(c1_, &c1_prev) ? c1_ : c1_prev);
                 pixelLine.c2 = 0;
                 pixelLine.mode = 1;
 
@@ -244,7 +301,7 @@ int main (int argc, char** argv)
                 pixelLine.header.stamp = ros::Time::now();
                 pixelLine.header.frame_id = "0";
                 pixelLine.slope = m1_;
-                pixelLine.c1 = c1_;
+                pixelLine.c1 = 0;
                 pixelLine.c2 = 0;
                 pixelLine.mode = 0;
 
