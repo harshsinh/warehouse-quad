@@ -26,11 +26,12 @@
 
 using namespace Eigen;
 
-double threshold = 20;
-double set_count = 0.0;
 VectorXf sonar_set;
-int first_val_check = 0;
 double sonarVal;
+double threshold=20;
+double set_count=0;
+int first_val_check=0;
+
 
 /* Frame and Camera */
 cv::Mat frame;
@@ -130,6 +131,7 @@ bool median_filter (int distance, int * c1_prev)
 {
 
     int i;
+    //double set_count = 0.0;
 	VectorXf sonar_set_copy(10);
 
 	if (set_count==0){
@@ -276,18 +278,19 @@ int main (int argc, char** argv)
                 pixelLine.header.stamp = ros::Time::now();
                 pixelLine.header.frame_id = "0";
                 pixelLine.slope = m1_;
-                pixelLine.c1 = (median_filter(c1_, &c1_prev) ? c1_ : c1_prev);
+                //pixelLine.c1 = (median_filter(c1_, &c1_prev) ? c1_ : c1_prev);
+		pixelLine.c1 = c1_;
                 pixelLine.c2 = 0;
                 pixelLine.mode = 1;
 
                 debug_msg.x = m1_ * 180/3.14159;
                 debug_msg.y = c1_;
 
-                cv::imshow("opening", opening);
-                cv::imshow("canny", result);
-                cv::imshow("image", frame);
+                //cv::imshow("opening", opening);
+//                cv::imshow("canny", result);
+//                cv::imshow("image", frame);
                 cnts = 0;
-                msg = cv_bridge::CvImage (std_msgs::Header(), "mono8", opening).toImageMsg();
+                msg = cv_bridge::CvImage (std_msgs::Header(), "mono8", result).toImageMsg();
 
             }
 
