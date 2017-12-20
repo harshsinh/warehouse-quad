@@ -50,7 +50,7 @@ int main (int argc, char** argv)
 
 
  //check for ip camera
-bool check=cap.open("http://192.168.0.3:8080/video?x.mjpeg");
+bool check=cap.open("http://192.168.0.102:8080/video?x.mjpeg");
 
 
   if(!check)
@@ -90,10 +90,10 @@ while (nh.ok()){
      cvtColor (frame, img_gray, CV_BGR2HSV);
      inRange (img_gray,  Scalar(20, 80, 100),  Scalar(40, 255, 255), thresh1);
      GaussianBlur (thresh1, blurred,   Size(11, 11), 0, 0);
-     //threshold (blurred, thresh1, 127, 255, CV_THRESH_BINARY);
+     threshold (blurred, thresh1, 127, 255, CV_THRESH_BINARY);
      morphologyEx (thresh1, closing,  MORPH_CLOSE,  getStructuringElement( MORPH_RECT,  Size(2, 2),   Point(-1, -1)));
-     morphologyEx (closing, temp,  MORPH_OPEN,  getStructuringElement( MORPH_RECT,  Size(2, 2),   Point(-1, -1)));
-     //Canny (thresh1, temp, 50, 150, 3);
+     morphologyEx (closing, opening,  MORPH_OPEN,  getStructuringElement( MORPH_RECT,  Size(2, 2),   Point(-1, -1)));
+     Canny (thresh1, temp, 50, 150, 3);
      imshow("InputImage",frame);
      drawStuff();
   if (cv::waitKey(1) == 113)
