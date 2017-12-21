@@ -206,5 +206,4 @@ include_directories(
 ## SubDirectories ##
 ####################
 
-add_subdirectory (src/linedetector)
 add_subdirectory (src/pca-linedetector)
