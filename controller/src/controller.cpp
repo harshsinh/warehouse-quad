@@ -8,10 +8,11 @@
 #include <mavros_msgs/State.h>
 #include <tf/transform_datatypes.h>
 #include <mavros_msgs/AttitudeTarget.h>
-
+#include <fstream>
+#include <iostream>
 using namespace std;
 
-
+ofstream myfile;
 float z, c1, c2;
 bool _detected=false;
 int mode_line=1;
@@ -64,6 +65,7 @@ void takeoff()
 	mocap.pose.position.y = 0.0f; 
 	setpoint.pose.orientation.z = q.z();
 	setpoint.pose.orientation.w = q.w();
+	cout<<"takeoff"<<endl;
 
 }
 
@@ -76,12 +78,13 @@ void em_land()
 	mocap.pose.position.y = 0;
 	mocap.pose.position.x = 0;
 	mocap.pose.position.z = 0;
-
+	cout<<"emergency_land"<<endl;
 }
 
 
 void hold_line()
 {
+	myfile << yaw_set<<endl;
 	setpoint.pose.position.z = 0.7f;
 	q1.setRPY(0, 0, yaw_set);
 	setpoint.pose.orientation.z = q1.z();
@@ -89,6 +92,7 @@ void hold_line()
 	mocap.pose.position.y = c1;
 	mocap.pose.position.x = 0.0f;
 	mocap.pose.position.z = -1.0;
+	cout<<"hold_line"<<endl;
 
 }
 
@@ -124,10 +128,9 @@ switch (_flag_c) {
   			case 0:
   				
   				 em_land(); //emergency_land
-  				 break;
+				 break;
   				
   			} 
-
 
 	
 }
