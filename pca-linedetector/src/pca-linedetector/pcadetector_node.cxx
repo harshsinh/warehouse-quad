@@ -310,10 +310,10 @@ int main (int argc, char** argv)
                 pixelLine.header.stamp = ros::Time::now();
                 pixelLine.header.frame_id = "0";
                 pixelLine.slope = m1_;
-		std::cout << "ok" << std::endl;
-//                pixelLine.c1 = (median_filter(c1_, &c1_prev) ? c1_ : c1_prev);
+		        std::cout << "ok" << std::endl;
                 //pixelLine.c1 = (median_filter(c1_, &c1_prev) ? c1_ : c1_prev);
-		pixelLine.c1 = c1_;
+                //pixelLine.c1 = (median_filter(c1_, &c1_prev) ? c1_ : c1_prev);
+		        pixelLine.c1 = c1_;
                 pixelLine.c2 = 0;
                 pixelLine.mode = 1;
                 cnts = 0;
@@ -331,7 +331,7 @@ int main (int argc, char** argv)
                     pixelLine.header.seq = ++msg_count;
                     pixelLine.header.stamp = ros::Time::now();
                     pixelLine.header.frame_id = "0";
-                    pixelLine.slope = m1_;
+                    pixelLine.slope = 0;
                     pixelLine.c1 = 0;
                     pixelLine.c2 = 0;
                     pixelLine.mode = 0;
@@ -348,15 +348,24 @@ int main (int argc, char** argv)
                 std::cout << "horizontal slope : " << m2_ * TO_PI << " intercept : " << c2_ << std::endl;
             }
 
-            if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL && std::abs(c2_) < CROSS_THRESH) {
-
-                pixelLine.mode = 2;
-                pixelLine.c1 = transform((m2_*c1_ + c2_)/(1 - m1_*m2_), (m1_*c2_ + c1_)/(1 - m1_*m2_)).x;
-                pixelLine.c2 = transform((m2_*c1_ + c2_)/(1 - m1_*m2_), (m1_*c2_ + c1_)/(1 - m1_*m2_)).y;
-            }
-
             if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL)
                 cv::circle(frame, transform((m2_*c1_ + c2_)/(1 - m1_*m2_), (m1_*c2_ + c1_)/(1 - m1_*m2_)), 5, cv::Scalar(0, 255, 0), 5);
+
+            if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL && std::abs(c2_) < CROSS_THRESH) {
+                
+                pixelLine.mode = 2;
+                // c1_ = (m2_*c1_ + c2_)/(1 - m1_*m2_);
+                // c2_ = (m1_*c2_ + c1_)/(1 - m1_*m2_);
+
+                if (std::abs(c2_) > 128)
+                    c2_ = 128 * ((c2_ > 0) ? 1 : -1);
+
+                if (std::abs(c1_) > 128)
+                    c1_ = 128 * ((c1_ > 0) ? 1 : -1);
+
+                pixelLine.c1 = c1_;
+                pixelLine.c2 = c2_;
+            }
 
         }
 
