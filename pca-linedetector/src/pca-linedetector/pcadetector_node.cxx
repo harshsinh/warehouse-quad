@@ -21,6 +21,7 @@
 
 #define min 0.00001
 #define EIGMIN 0.25*1e6
+#define EIGTHRESH 0.25*1e6
 #define ERROR_VAL 1000
 #define n_grid 3
 #define ZED 0
@@ -115,7 +116,8 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
     //           << "inter : " << lines[3] << std::endl;
 
     // std::cout << "eigen val : " << values[0] << " : " << values[1] << std::endl;
-
+    lines[2] = values[0];
+    lines[3] = values[1];
     return (lines);
 }
 
@@ -211,12 +213,8 @@ int main (int argc, char** argv)
                               cv::Size(2, 2),  cv::Point(-1, -1)));
 
             cv::Canny (thresh, result, 50, 150, 3);
-
             cv::HoughLinesP(result, lines, 5, CV_PI/180, 1, 1);
 
-            // cv::imshow("opening", opening);
-            // cv::imshow("canny", result);
-            // cv::imshow("image", frame);
             msg = cv_bridge::CvImage (std_msgs::Header(), "mono8", result).toImageMsg();
 
             /* PCA on the point from Hough lines */
@@ -259,35 +257,48 @@ int main (int argc, char** argv)
 
 
                 std::cout << "---------------" << std::endl;
-                auto principle_lines_h = PCA (X);
-                auto principle_lines_v = PCA (Y);
+                auto principle_lines_h = PCA (Y);
+                auto principle_lines_v = PCA (X);
 
-                auto m1_ = principle_lines_h[0];
-                auto c1_ = principle_lines_h[1];
-                auto m2_ = principle_lines_v[0];
-                auto c2_ = principle_lines_v[1];
+                auto m1_ = principle_lines_v[0];
+                auto c1_ = principle_lines_v[1];
+                auto m2_ = principle_lines_h[0];
+                auto c2_ = principle_lines_h[1];
 
                 if (m1_ != -ERROR_VAL) {
 
-                    pixelLine.c2 = c1_;
+                    if (std::abs(m1_ * TO_PI) > 90)
+                        m1_ = CV_PI * 0.5 * ((m1_ > 0) ? 1 : -1);
 
-                    h_grid.push_back (cv::Vec3f(m1_, c1_, i));
-                    cv::line(frame, transform(0, c1_), transform(-c1_/(m1_?m1_:min), 0), cv::Scalar(0, 255, 255), 2);
-                    std::cout << "horizontal : " << i << " slope : " << m1_ * TO_PI << " intercept : " << c1_ << std::endl;
-                }
-
-                if (m2_ != -ERROR_VAL) {
+                    if (std::abs(c1_) > 128)
+                        c1_ = 128 * ((c1_ > 0) ? 1 : -1);
 
                     pixelLine.header.seq = ++msg_count;
                     pixelLine.header.stamp = ros::Time::now();
                     pixelLine.header.frame_id = "0";
-                    pixelLine.slope = m2_;
-                    pixelLine.c1 = c2_;
+                    pixelLine.slope = m1_;
+                    pixelLine.c1 = c1_;
+                    pixelLine.c2 = 0;
                     pixelLine.mode = 1;
 
                     v_grid.push_back (cv::Vec3f(m2_, c2_, i));
-                    cv::line(frame, transform(c2_, 0), transform(0, -c2_/(m2_?m2_:min)), cv::Scalar(0, 255, 255), 2);
+                    cv::line(frame, transform(0, c2_), transform(-c2_/(m2_?m2_:min), 0), cv::Scalar(255, 0, 255), 2);
                     std::cout << "vertical : " << i << " slope : " << m2_ * TO_PI << " intercept : " << c2_ << std::endl;
+                }
+
+                if (m2_ != -ERROR_VAL) {
+
+                    if (std::abs(c2_) > 128)
+                        c2_ = 128 * ((c2_ > 0) ? 1 : -1);
+
+                    pixelLine.c2 = c2_;
+
+                    if (std::abs(c2_) < 20)
+                        pixelLine.mode = 2;
+
+                    h_grid.push_back (cv::Vec3f(m2_, c2_, i));
+                    cv::line(frame, transform(c2_, 0), transform(0, -c2_/(m2_?m2_:min)), cv::Scalar(255, 0, 255), 2);
+                    std::cout << "horizontal : " << i << " slope : " << m2_ * TO_PI << " intercept : " << c2_ << std::endl;
                 }
 
                 if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL) {
@@ -297,51 +308,8 @@ int main (int argc, char** argv)
 
             }
 
-            cv::imshow("lol", frame);
-            // if (v_grid.empty()) {
+            cv::imshow("reference", frame);
 
-            //     auto principle_lines = PCA (all_points);
-            //     auto m1_ = principle_lines[0];
-            //     auto c1_ = principle_lines[1];
-                
-            //     if (m1_ != -ERROR_VAL) {
-
-            //         pixelLine.header.seq = ++msg_count;
-            //         pixelLine.header.stamp = ros::Time::now();
-            //         pixelLine.header.frame_id = "0";
-            //         pixelLine.slope = m1_;
-            //         pixelLine.c1 = c1_;
-            //         pixelLine.c2 = 0;
-            //         pixelLine.mode = 1;
-
-            //         std::cout << "slope : " << m1_ * TO_PI << "intercept : " << c1_ << std::endl;
-            //     }
-
-                // else {
-
-                //     ++cnts;
-                //     if (cnts < 10)
-                //         continue;
-
-                //     pixelLine.header.seq = ++msg_count;
-                //     pixelLine.header.stamp = ros::Time::now();
-                //     pixelLine.header.frame_id = "0";
-                //     pixelLine.slope = m1_;
-                //     pixelLine.c1 = 0;
-                //     pixelLine.c2 = 0;
-                //     pixelLine.mode = 0;
-                // }
-            // }
-            // auto principle_line = PCA (all_points);
-            // // auto principle_line_x = PCA (X);
-
-            // auto m1_ = principle_line[0];
-            // auto c1_ = principle_line[1];
-            // if (m1_ != ERROR_VAL)
-            //     std::cout << "m1 : " << m1_ * TO_PI << " c1 : " << c1_ << std::endl;
-            // std::cout << "--------" << std::endl;
-
-            std::cout << "****" << std::endl;
             pub.publish(pixelLine);
             threshpub.publish(msg);
 
