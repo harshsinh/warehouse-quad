@@ -13,6 +13,8 @@
 #include <cmath>
 #include <vector>
 #include <string>
+#include <Eigen/Dense>
+#include <Eigen/Geometry>
 #include <iostream>
 #include <ros/ros.h>
 #include "CVInclude.h"
@@ -27,6 +29,14 @@
 #define ZED 0
 #define SIZE 256
 #define TO_PI 180/3.1415
+
+using namespace Eigen;
+
+VectorXf sonar_set(10);
+double sonarVal;
+double threshold = 20;
+double set_count = 0;
+int first_val_check = 0;
 
 /* Frame and Camera */
 cv::Mat frame;
@@ -61,6 +71,7 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
 
     /* Safe gaurd for empty frames */
     // std::cout << "number of points : " << data_points.size() << std::endl;
+  
     if(data_points.size() == 0)
         return (cv::Vec4i(-ERROR_VAL, -ERROR_VAL, -ERROR_VAL, -ERROR_VAL));
 
@@ -103,7 +114,6 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
         lines[2*i + 1] = mean[1] - (lines[2*i] * mean[0]);
 
         values.push_back(eigval[0]);
-
     }
 
     std::cout << "eigen val : " << values[0] << " : " << values[1] << std::endl;
@@ -122,20 +132,51 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
     return (lines);
 }
 
-std::pair<int, int> get_index (int x, int y, int w)
+bool median_filter (int distance, int * c1_prev)
 {
 
-    std::pair<int, int> v = {0, 0};
+    int i;
+    //double set_count = 0.0;
+	VectorXf sonar_set_copy(10);
 
-    v.first = (n_grid - 1)/2 + double(x + w/2)/w;
-    v.second = (n_grid - 1)/2 + double(y + w/2)/w;
+	if (set_count==0){
+		sonar_set.setZero();
+	}
+	sonar_set_copy = sonar_set;
+	if (set_count < 10){
+		//getting first 40 set of sonar data
+		sonar_set_copy[set_count] = distance;
+		sonar_set[set_count] = distance;
+		set_count++;
+		sonarVal = distance;
+		if(set_count==9){
+			first_val_check = 1;
+		}
+	}
 
-    if (x == SIZE/2)
-        v.first = n_grid - 1;
+	else{
+			std::cout <<"okay" <<std::endl;
 
-    if (y == SIZE/2)
-        v.second = n_grid - 1;
-    return v;
+		    std::sort(sonar_set_copy.data(), sonar_set_copy.data()+sonar_set_copy.size()); //arranging the 400 set of data in increasing order
+
+		    if((distance > (sonar_set_copy[5]-threshold))&&(distance < (sonar_set_copy[5]+threshold))){ //checking if the current value is in a limit of the median value
+			    //if so then return the current sonar data
+			    sonarVal = distance;
+			    for(i=0;i<9;i++){
+			    sonar_set[i] = sonar_set[i+1]; // updating the sonar set for next 400 data
+			}
+            *c1_prev = distance;
+		    return true;
+		}
+		
+        else{
+
+		    return false;
+		}
+	}
+
+    sonar_set[9] = distance;
+    return false;
 }
 
 int main (int argc, char** argv)
@@ -145,7 +186,7 @@ int main (int argc, char** argv)
 	ros::init (argc, argv, "linedetector_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate (50);
-    pca_linedetector::line pixelLine;
+  pca_linedetector::line pixelLine;
     geometry_msgs::Vector3 debug_msg;
 	image_transport::ImageTransport it(nh);
     sensor_msgs::ImagePtr threshmsg, finalmsg;
@@ -155,6 +196,7 @@ int main (int argc, char** argv)
 	/* Publish the final line detected image and line */
 	image_transport::Publisher threshpub = it.advertise ("thresh", 1);
     image_transport::Publisher finalimpub = it.advertise ("final_image", 1);
+
 	ros::Publisher pub = nh.advertise<pca_linedetector::line>("/line", 100);
     ros::Publisher debug = nh.advertise<geometry_msgs::Vector3>("/debug", 100);
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
@@ -223,8 +265,8 @@ int main (int argc, char** argv)
             for (std::vector<cv::Vec4i>::iterator it = lines.begin(); it != lines.end(); ++it) {
 
                 cv::Vec4i l = *it;
-
-                // Transformation from default coordinates
+                
+        // Transformation from default coordinates
 				int x1_, y1_, x2_, y2_;
 				x1_ = 128 - l[1]; x2_ = 128 - l[3];
                 y1_ = 128 - l[0]; y2_ = 128 - l[2];
@@ -268,7 +310,10 @@ int main (int argc, char** argv)
                 pixelLine.header.stamp = ros::Time::now();
                 pixelLine.header.frame_id = "0";
                 pixelLine.slope = m1_;
-                pixelLine.c1 = c1_;
+		std::cout << "ok" << std::endl;
+//                pixelLine.c1 = (median_filter(c1_, &c1_prev) ? c1_ : c1_prev);
+                //pixelLine.c1 = (median_filter(c1_, &c1_prev) ? c1_ : c1_prev);
+		pixelLine.c1 = c1_;
                 pixelLine.c2 = 0;
                 pixelLine.mode = 1;
                 cnts = 0;

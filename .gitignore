@@ -34,3 +34,9 @@
 
 # Vscode
 .vscode
+
+# Swap files
+*.swp
+*.swn
+*.swo
+*.swm
