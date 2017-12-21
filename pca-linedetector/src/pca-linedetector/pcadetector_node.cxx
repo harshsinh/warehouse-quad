@@ -1,5 +1,5 @@
 /*****************************************************************************
- * 
+ *
  * Publishers : /lines -- warehouse_quad::line
  *                        line.slope -- slope of major line
  *                        line.c1(c2)-- intercepts
@@ -8,7 +8,7 @@
  * Subscriber : /usb_cam/image_raw -- Input Image.
  * Origin : (0, 0) at image center
  * x-axis is vertically up and y-axis is 90 deg counter-clockwise from x.
- * 
+ *
  ****************************************************************************/
 #include <cmath>
 #include <vector>
@@ -22,23 +22,28 @@
 #include <geometry_msgs/Vector3.h>
 
 #define min 0.00001
-#define EIGMIN 0.25*1e6
+#define EIGMIN 0.10*1e6
+#define CROSS_THRESH 40
+#define ERROR_VAL 1000
+#define n_grid 1
+#define ZED 0
+#define SIZE 256
+#define TO_PI 180/3.1415
 
 using namespace Eigen;
 
 VectorXf sonar_set(10);
 double sonarVal;
-double threshold=20;
-double set_count=0;
-int first_val_check=0;
-
+double threshold = 20;
+double set_count = 0;
+int first_val_check = 0;
 
 /* Frame and Camera */
 cv::Mat frame;
 cv::VideoCapture cap;
 
 /* [TUNABLE] Color Thresh */
-auto yellow_low  = cv::Scalar(20, 80, 155);
+auto yellow_low  = cv::Scalar(20, 80, 100);
 auto yellow_high = cv::Scalar(40, 255, 255);
 
 /* Call back function for image */
@@ -65,16 +70,17 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
 {
 
     /* Safe gaurd for empty frames */
-    std::cout << "lol" << data_points.size() << std::endl;
+    // std::cout << "number of points : " << data_points.size() << std::endl;
+  
     if(data_points.size() == 0)
-        return (cv::Vec4i(-1, -1, -1, -1));
+        return (cv::Vec4i(-ERROR_VAL, -ERROR_VAL, -ERROR_VAL, -ERROR_VAL));
 
     cv::Vec4f lines;
     std::vector<double> values;
     auto mean = cv::mean(data_points);
     cv::Mat data_transp(2, data_points.size(), CV_64F, cv::Scalar::all(0));
     cv::Mat data(data_points.size(), 2, CV_64F, cv::Scalar::all(0));
-    
+
     /* Data formatting for PCA */
     int i = 0;
     for (std::vector<cv::Vec2i>::iterator it = data_points.begin(); it != data_points.end(); ++it) {
@@ -90,7 +96,7 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
     cv::Mat cov = data_transp * data;
     cv::Mat eigenval, eigenvec;
     cv::eigen(cov, eigenval, eigenvec);
-    
+
     for(int i = 0; i < eigenvec.rows; ++i) {
 
         double * veci = eigenvec.ptr<double>(i);
@@ -108,22 +114,21 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
         lines[2*i + 1] = mean[1] - (lines[2*i] * mean[0]);
 
         values.push_back(eigval[0]);
-
-        std::cout << i << std::endl;
-
     }
-
-    if (values[0] < EIGMIN)
-        return (cv::Vec4i(-1, -1, -1, -1));
-
-    std::cout << lines << std::endl;
-    std::cout << "slope major : " << std::atan2(lines[0], 1) * 180/3.1415 << "\t"
-              << "inter : " << lines[1] << std::endl;
-    std::cout << "slope minor : " << std::atan2(lines[2], 1) * 180/3.1415 << "\t"
-              << "inter : " << lines[3] << std::endl;
 
     std::cout << "eigen val : " << values[0] << " : " << values[1] << std::endl;
 
+    if (values[0] < EIGMIN)
+        return (cv::Vec4i(-ERROR_VAL, -ERROR_VAL, -ERROR_VAL, -ERROR_VAL));
+
+    // std::cout << lines << std::endl;
+    // std::cout << "slope major : " << std::atan2(lines[0], 1) * 180/3.1415 << "\t"
+    //           << "inter : " << lines[1] << std::endl;
+    // std::cout << "slope minor : " << std::atan2(lines[2], 1) * 180/3.1415 << "\t"
+    //           << "inter : " << lines[3] << std::endl;
+
+    lines[2] = values[0];
+    lines[3] = values[1];
     return (lines);
 }
 
@@ -181,17 +186,17 @@ int main (int argc, char** argv)
 	ros::init (argc, argv, "linedetector_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate (50);
-    pca_linedetector::line pixelLine;
+  pca_linedetector::line pixelLine;
     geometry_msgs::Vector3 debug_msg;
 	image_transport::ImageTransport it(nh);
-    sensor_msgs::ImagePtr msg;
+    sensor_msgs::ImagePtr threshmsg, finalmsg;
     int msg_count = -1;
     int cnts = 0;
 
-    int c1_prev = 0;
-	
 	/* Publish the final line detected image and line */
-	image_transport::Publisher threshpub = it.advertise ("final_image", 1);
+	image_transport::Publisher threshpub = it.advertise ("thresh", 1);
+    image_transport::Publisher finalimpub = it.advertise ("final_image", 1);
+
 	ros::Publisher pub = nh.advertise<pca_linedetector::line>("/line", 100);
     ros::Publisher debug = nh.advertise<geometry_msgs::Vector3>("/debug", 100);
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
@@ -199,27 +204,21 @@ int main (int argc, char** argv)
     /* Choose camera */
 	int camera = argv [1][0] - 48;
 
-    /* Parameters for Regular Grid */
-    int n_grid = 16;
-    auto image_size = cv::Size(256, 256);
-    auto grid_size = cv::Size(image_size.width/n_grid, image_size.height/n_grid);
-
-    /* Image size, Parameters for SLIC */
-    int nr_superpixels = 100;
-    int nc = 25;
+    /* Parameters for Regular Slices */
+    auto image_size = cv::Size(SIZE, SIZE);
 
 	/* Camera has to specified in digit, else checks on /usb_cam/image_raw */
 	if (camera >= 0 && camera < 10) {
 
 		std::cout << camera << std::endl;
 		cap.open (camera);
-		
+
 		if (!cap.isOpened()) {
-		
+
 			std::cout << "Unable to open camera " << camera << std::endl;
 			ROS_ERROR_STREAM ("Unable to open camera");
 			return -1;
-		
+
 		}
 	}
 
@@ -233,47 +232,79 @@ int main (int argc, char** argv)
             /* Empty Images and Lines */
             cv::Mat hsv, thresh, blurred, opening, closing, result, temp, final_image;
             std::vector<cv::Vec4i> lines;
-            std::vector<cv::Vec2i> points;
+            std::vector<cv::Vec2i> all_points;
+            std::vector<cv::Vec2i> points[2*n_grid];
+            std::vector<cv::Vec3f> h_grid;
+            std::vector<cv::Vec3f> v_grid;
+            std::vector<cv::Vec2i> X, Y;
+
+            /* Slice Image in case of ZED camera */
+            if (ZED) {
+                frame = cv::Mat(frame, cv::Rect(0, 0, frame.cols/2, frame.rows)).clone();
+            }
 
             /* Load, Resize and Convert image */
             cv::resize(frame, frame, image_size);
             cv::cvtColor(frame, hsv, CV_BGR2HSV);
             cv::inRange(hsv, yellow_low, yellow_high, thresh);
 			cv::GaussianBlur (thresh, blurred,  cv::Size(11, 11), 0, 0);
-			cv::morphologyEx (blurred, closing, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2, 2),  cv::Point(-1, -1)));
-			cv::morphologyEx (closing, opening, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2, 2),  cv::Point(-1, -1)));
-            // cv::medianBlur (opening, opening, 5);
-            cv::Canny (thresh, result, 50, 150, 3);
+			cv::morphologyEx (blurred, closing, cv::MORPH_CLOSE,
+                              cv::getStructuringElement (cv::MORPH_RECT,
+                              cv::Size(2, 2),  cv::Point(-1, -1)));
 
-            cv::HoughLinesP(result, lines, 5, CV_PI/180, 1, 1);
+            cv::morphologyEx (closing, opening, cv::MORPH_OPEN,
+                              cv::getStructuringElement (cv::MORPH_RECT,
+                              cv::Size(2, 2),  cv::Point(-1, -1)));
+
+            cv::Canny (thresh, result, 50, 150, 3);
+            cv::HoughLinesP(result, lines, 5, CV_PI/180, 1, 4);
+
+            threshmsg = cv_bridge::CvImage (std_msgs::Header(), "mono8", result).toImageMsg();
 
             /* PCA on the point from Hough lines */
             for (std::vector<cv::Vec4i>::iterator it = lines.begin(); it != lines.end(); ++it) {
 
                 cv::Vec4i l = *it;
                 
-                // Transformation from default coordinates
+        // Transformation from default coordinates
 				int x1_, y1_, x2_, y2_;
 				x1_ = 128 - l[1]; x2_ = 128 - l[3];
                 y1_ = 128 - l[0]; y2_ = 128 - l[2];
-                
-                points.push_back(cv::Vec2i(x1_, y1_));
-                points.push_back(cv::Vec2i(x2_, y2_));
+
+                if (std::abs(y2_ - y1_) <= std::abs(x2_ - x1_)) {
+
+                    cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(255, 0, 0), 2, CV_AA);
+                    X.push_back (cv::Vec2i(x1_, y1_));
+                    X.push_back (cv::Vec2i(x2_, y2_));
+                }
+
+                else {
+
+                    cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0, 0, 255), 2, CV_AA);
+                    Y.push_back (cv::Vec2i(y1_, x1_));
+                    Y.push_back (cv::Vec2i(y2_, x2_));
+                }
+
+                all_points.push_back(cv::Vec2i(x1_, y1_));
+                all_points.push_back(cv::Vec2i(x2_, y2_));
 
             }
 
-            auto principle_lines = PCA (points);
+            auto principle_lines_h = PCA (Y);
+            auto principle_lines_v = PCA (X);
 
-            auto m1_ = principle_lines[0];
-            auto c1_ = principle_lines[1];
-            auto m2_ = principle_lines[2];
-            auto c2_ = principle_lines[3];
+            auto m1_ = principle_lines_v[0];
+            auto c1_ = principle_lines_v[1];
+            auto m2_ = principle_lines_h[0];
+            auto c2_ = principle_lines_h[1];
 
-            /* Slopes of the two principle components can not be same */
-            if(m1_ != m2_) {
+            if (m1_ != -ERROR_VAL) {
 
-                cv::line(frame, transform(0, c1_), transform(-c1_/(m1_?m1_:min), 0), cv::Scalar(0, 0, 255), 2);
-                cv::line(frame, transform(0, c2_), transform(-c2_/(m2_?m2_:min), 0), cv::Scalar(0, 0, 255), 2);
+                if (std::abs(m1_ * TO_PI) > 90)
+                    m1_ = CV_PI * 0.5 * ((m1_ > 0) ? 1 : -1);
+
+                if (std::abs(c1_) > 128)
+                    c1_ = 128 * ((c1_ > 0) ? 1 : -1);
 
                 pixelLine.header.seq = ++msg_count;
                 pixelLine.header.stamp = ros::Time::now();
@@ -285,42 +316,59 @@ int main (int argc, char** argv)
 		pixelLine.c1 = c1_;
                 pixelLine.c2 = 0;
                 pixelLine.mode = 1;
-
-                debug_msg.x = m1_ * 180/3.14159;
-                debug_msg.y = c1_;
-
-                //cv::imshow("opening", opening);
-//                cv::imshow("canny", result);
-//                cv::imshow("image", frame);
                 cnts = 0;
-                msg = cv_bridge::CvImage (std_msgs::Header(), "mono8", result).toImageMsg();
 
+                cv::line(frame, transform(0, c1_), transform(-c1_/(m1_?m1_:min), 0), cv::Scalar(255, 255, 0), 2);
+                std::cout << "vertical slope : " << m1_ * TO_PI << " intercept : " << c1_ << std::endl;
             }
 
             else {
 
-                ++cnts;
-                if (cnts < 10)
-                    continue;
+                    ++cnts;
+                    if (cnts < 5)
+                        continue;
 
-                pixelLine.header.seq = ++msg_count;
-                pixelLine.header.stamp = ros::Time::now();
-                pixelLine.header.frame_id = "0";
-                pixelLine.slope = m1_;
-                pixelLine.c1 = 0;
-                pixelLine.c2 = 0;
-                pixelLine.mode = 0;
+                    pixelLine.header.seq = ++msg_count;
+                    pixelLine.header.stamp = ros::Time::now();
+                    pixelLine.header.frame_id = "0";
+                    pixelLine.slope = m1_;
+                    pixelLine.c1 = 0;
+                    pixelLine.c2 = 0;
+                    pixelLine.mode = 0;
+                }
 
-            };
+            if (m2_ != -ERROR_VAL) {
 
-            pub.publish(pixelLine);
-            debug.publish(debug_msg);
-            threshpub.publish(msg);
+                if (std::abs(c2_) > 128)
+                    c2_ = 128 * ((c2_ > 0) ? 1 : -1);
 
-            if (cv::waitKey(1) == 113)
-			break;
+                pixelLine.c2 = c2_;
+
+                cv::line(frame, transform(c2_, 0), transform(0, -c2_/(m2_?m2_:min)), cv::Scalar(255, 0, 255), 2);
+                std::cout << "horizontal slope : " << m2_ * TO_PI << " intercept : " << c2_ << std::endl;
+            }
+
+            if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL && std::abs(c2_) < CROSS_THRESH) {
+
+                pixelLine.mode = 2;
+                pixelLine.c1 = transform((m2_*c1_ + c2_)/(1 - m1_*m2_), (m1_*c2_ + c1_)/(1 - m1_*m2_)).x;
+                pixelLine.c2 = transform((m2_*c1_ + c2_)/(1 - m1_*m2_), (m1_*c2_ + c1_)/(1 - m1_*m2_)).y;
+            }
+
+            if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL)
+                cv::circle(frame, transform((m2_*c1_ + c2_)/(1 - m1_*m2_), (m1_*c2_ + c1_)/(1 - m1_*m2_)), 5, cv::Scalar(0, 255, 0), 5);
 
         }
+
+        finalmsg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
+        // cv::imshow("reference", frame);
+
+        pub.publish(pixelLine);
+        threshpub.publish(threshmsg);
+        finalimpub.publish(finalmsg);
+
+        if (cv::waitKey(1) == 113)
+		break;
 
         ros::spinOnce();
 	    loop_rate.sleep();
