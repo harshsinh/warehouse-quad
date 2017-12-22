@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(vanilla-linedetector)
-# Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+project(pca_linedetector)
+
+## Compile as C++11, supported in ROS Kinetic and newer
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -13,10 +14,15 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   image_transport
   cv_bridge
+  message_generation
+  message_runtime
+  cmake_modules
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package (Eigen REQUIRED)
+find_package (OpenCV REQUIRED)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -49,11 +55,10 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  line.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -70,10 +75,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   geometry_msgs#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -107,7 +112,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES warehouse_quad
-#  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs
+#  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs message_generation message_runtime
 #  DEPENDS system_lib
 )
 
@@ -119,8 +124,8 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories (include/${PROJECT_NAME})
 include_directories(
-  include/warehouse_quad
   ${catkin_INCLUDE_DIRS}
+  ${Eigen_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -205,4 +210,4 @@ include_directories(
 ## SubDirectories ##
 ####################
 
-add_subdirectory (src/linedetector)
+add_subdirectory (src/pca-linedetector)
