@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   image_transport
   cv_bridge
+  warehouse_quad
 )
 
 ## System dependencies are found with CMake's conventions

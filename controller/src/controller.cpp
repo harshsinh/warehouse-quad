@@ -141,7 +141,7 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
   ros::Subscriber sub = n.subscribe("/mavros/vision_pose/pose", 10, posecb);
   ros::Subscriber sub_marker = n.subscribe("/marker", 10, markercb);
-  ros::Subscriber sub_line = n.subscribe("/line",10, linecb);
+  ros::Subscriber sub_line = n.subscribe("/warehouse_quad/line",10, linecb);
   ros::Subscriber sub1 = n.subscribe("/mavros/imu/data",100, imuCallback);
   ros::Subscriber sub2 = n.subscribe("/mavros/state",10, statecb);
   

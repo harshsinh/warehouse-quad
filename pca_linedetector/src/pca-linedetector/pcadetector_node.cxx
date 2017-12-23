@@ -197,7 +197,7 @@ int main (int argc, char** argv)
 	image_transport::Publisher threshpub = it.advertise ("thresh", 1);
     image_transport::Publisher finalimpub = it.advertise ("final_image", 1);
 
-	ros::Publisher pub = nh.advertise<pca_linedetector::line>("/line", 100);
+	ros::Publisher pub = nh.advertise<pca_linedetector::line>("/warehouse_quad/line", 100);
     ros::Publisher debug = nh.advertise<geometry_msgs::Vector3>("/debug", 100);
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
 
