@@ -33,8 +33,9 @@ generate_messages(
 catkin_package(
    DEPENDS OpenCV Boost Eigen
    INCLUDE_DIRS include
-   CATKIN_DEPENDS roscpp message_runtime
+   CATKIN_DEPENDS roscpp message_runtime px_comm
 )
+
 
 include_directories(include
 					${Boost_INCLUDE_DIRS}
@@ -48,3 +49,6 @@ target_link_libraries(main zbar
     ${catkin_LIBRARIES}
     ${OpenCV_LIBRARIES}
     ${Boost_LIBRARIES})
+
+add_dependencies(main ${catkin_EXPORTED_TARGETS})
+

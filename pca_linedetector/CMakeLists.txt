@@ -219,3 +219,6 @@ target_link_libraries (pcadetector_node
 ####################
 ## SubDirectories ##
 ####################
+
+add_dependencies(pcadetector_node ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+
