@@ -17,8 +17,8 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <std_msgs/Bool.h>
-#include "pca_linedetector/line.h"
-#include "pca_linedetector/markerInfo.h"
+#include "hemd/line.h"
+#include "hemd/markerInfo.h"
 #include <iostream>
 #include <ros/ros.h>
 #include <geometry_msgs/Vector3.h>
@@ -69,7 +69,7 @@ void marker_detection_cb (const std_msgs::Bool& msg)
 }
 
 /* Call back for markers */
-void marker_cb (const pca_linedetector::markerInfo& msg)
+void marker_cb (const hemd::markerInfo& msg)
 {
 
     turn = ((msg.col == 4) && (msg.shelf == 1));
@@ -207,7 +207,7 @@ int main (int argc, char** argv)
 	ros::init (argc, argv, "linedetector_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate (50);
-    pca_linedetector::line pixelLine;
+    hemd::line pixelLine;
     geometry_msgs::Vector3 debug_msg;
 	image_transport::ImageTransport it(nh);
     sensor_msgs::ImagePtr threshmsg, finalmsg;
@@ -218,7 +218,7 @@ int main (int argc, char** argv)
 	image_transport::Publisher threshpub = it.advertise ("thresh", 1);
     image_transport::Publisher finalimpub = it.advertise ("final_image", 1);
 
-	ros::Publisher pub = nh.advertise<pca_linedetector::line>("/warehouse_quad/line", 100);
+	ros::Publisher pub = nh.advertise<hemd::line>("/warehouse_quad/line", 100);
     ros::Publisher debug = nh.advertise<geometry_msgs::Vector3>("/debug", 100);
 
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);

@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   message_runtime
   cmake_modules
+  hemd
 )
 
 ## System dependencies are found with CMake's conventions
@@ -55,11 +56,11 @@ find_package (OpenCV REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  line.msg
-  markerInfo.msg
-)
+#add_message_files(
+#  FILES
+#  line.msg
+#  markerInfo.msg
+#)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -153,6 +154,8 @@ target_link_libraries (pcadetector_node
 						${catkin_LIBRARIES}
 						${OpenCV_LIBRARIES}
 )
+
+add_dependencies(pcadetector_node ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -219,6 +222,4 @@ target_link_libraries (pcadetector_node
 ####################
 ## SubDirectories ##
 ####################
-
-add_dependencies(pcadetector_node ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
