@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(warehouse_quad)
+project(hemd)
 
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
@@ -21,8 +21,8 @@ find_package(Boost REQUIRED COMPONENTS system)
 add_message_files(
    FILES
    markerInfo.msg
-   line.msg
-#   Message2.msg
+   line.msg  
+   quadstate.msg
  )
  
 generate_messages(
