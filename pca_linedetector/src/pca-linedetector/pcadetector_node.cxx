@@ -15,10 +15,12 @@
 #include <string>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+#include <std_msgs/Bool.h>
 #include <iostream>
 #include <ros/ros.h>
 #include "CVInclude.h"
-#include "pca_linedetector/line.h"
+#include "warehouse_quad/line.h"
+#include "warehouse_quad/markerInfo.h"
 #include <geometry_msgs/Vector3.h>
 
 #define min 0.00001
@@ -32,11 +34,14 @@
 
 using namespace Eigen;
 
+/* Necessary Globals */
 VectorXf sonar_set(10);
 double sonarVal;
 double threshold = 20;
 double set_count = 0;
 int first_val_check = 0;
+bool marker_detected = false;
+bool turn = false;
 
 /* Frame and Camera */
 cv::Mat frame;
@@ -53,6 +58,22 @@ void imcallback (const sensor_msgs::ImageConstPtr& msg)
     frame = cv_bridge::toCvShare (msg) -> image;
     return;
 
+}
+
+/* Call back for detection message */
+void marker_detection_cb (const std_msgs::Bool& msg)
+{
+
+    marker_detected = msg.data;
+    return;
+}
+
+/* Call back for markers */
+void marker_cb (const warehouse_quad::markerInfo& msg)
+{
+
+    turn = ((msg.col == 4) && (msg.shelf == 1));
+    return;
 }
 
 /* Transform from new coordinate system */
@@ -186,7 +207,7 @@ int main (int argc, char** argv)
 	ros::init (argc, argv, "linedetector_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate (50);
-  pca_linedetector::line pixelLine;
+    pca_linedetector::line pixelLine;
     geometry_msgs::Vector3 debug_msg;
 	image_transport::ImageTransport it(nh);
     sensor_msgs::ImagePtr threshmsg, finalmsg;
@@ -197,9 +218,12 @@ int main (int argc, char** argv)
 	image_transport::Publisher threshpub = it.advertise ("thresh", 1);
     image_transport::Publisher finalimpub = it.advertise ("final_image", 1);
 
-	ros::Publisher pub = nh.advertise<pca_linedetector::line>("/warehouse_quad/line", 100);
+	ros::Publisher pub = nh.advertise<warehouse_quad::line>("/warehouse_quad/line", 100);
     ros::Publisher debug = nh.advertise<geometry_msgs::Vector3>("/debug", 100);
+
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
+    ros::Subscriber detect_sub = nh.subscribe ("/warehouse_quad/follow_line", 100, marker_detection_cb);
+    ros::Subscriber marker_sub = nh.subscribe ("/warehouse_quad/marker", 100, marker_cb);
 
     /* Choose camera */
 	int camera = argv [1][0] - 48;
@@ -353,9 +377,11 @@ int main (int argc, char** argv)
 
             if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL && std::abs(c2_) < CROSS_THRESH) {
                 
-                pixelLine.mode = 2;
-                // c1_ = (m2_*c1_ + c2_)/(1 - m1_*m2_);
-                // c2_ = (m1_*c2_ + c1_)/(1 - m1_*m2_);
+                /* If the marker_detected is high, force move to line follow mode */
+                pixelLine.mode = 2 - (1 && marker_detected);
+
+                /* On the turn publish mode 3 */
+                pixelLine.mode = pixelLine.mode + turn;
 
                 if (std::abs(c2_) > 128)
                     c2_ = 128 * ((c2_ > 0) ? 1 : -1);
@@ -370,7 +396,6 @@ int main (int argc, char** argv)
         }
 
         finalmsg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
-        // cv::imshow("reference", frame);
 
         pub.publish(pixelLine);
         threshpub.publish(threshmsg);
