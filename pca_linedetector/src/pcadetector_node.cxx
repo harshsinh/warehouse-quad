@@ -11,16 +11,16 @@
  *
  ****************************************************************************/
 #include <cmath>
+#include "CVInclude.h"
 #include <vector>
 #include <string>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <std_msgs/Bool.h>
+#include "pca_linedetector/line.h"
+#include "pca_linedetector/markerInfo.h"
 #include <iostream>
 #include <ros/ros.h>
-#include "CVInclude.h"
-#include "warehouse_quad/line.h"
-#include "warehouse_quad/markerInfo.h"
 #include <geometry_msgs/Vector3.h>
 
 #define min 0.00001
@@ -69,7 +69,7 @@ void marker_detection_cb (const std_msgs::Bool& msg)
 }
 
 /* Call back for markers */
-void marker_cb (const warehouse_quad::markerInfo& msg)
+void marker_cb (const pca_linedetector::markerInfo& msg)
 {
 
     turn = ((msg.col == 4) && (msg.shelf == 1));
@@ -218,7 +218,7 @@ int main (int argc, char** argv)
 	image_transport::Publisher threshpub = it.advertise ("thresh", 1);
     image_transport::Publisher finalimpub = it.advertise ("final_image", 1);
 
-	ros::Publisher pub = nh.advertise<warehouse_quad::line>("/warehouse_quad/line", 100);
+	ros::Publisher pub = nh.advertise<pca_linedetector::line>("/warehouse_quad/line", 100);
     ros::Publisher debug = nh.advertise<geometry_msgs::Vector3>("/debug", 100);
 
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
