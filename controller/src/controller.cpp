@@ -2,8 +2,8 @@
 #include "std_msgs/String.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "sensor_msgs/Range.h"
-#include <warehouse_quad/markerInfo.h>
-#include <warehouse_quad/line.h>
+#include <hemd/markerInfo.h>
+#include <hemd/line.h>
 #include <sensor_msgs/Imu.h>
 #include <mavros_msgs/State.h>
 #include <tf/transform_datatypes.h>
@@ -26,19 +26,19 @@ geometry_msgs::PoseStamped mocap;
 
 
 
-void linecb(const warehouse_quad::line::ConstPtr& msg)
+void linecb(const hemd::line::ConstPtr& msg)
 {
   mode_line = msg->mode;
   yaw_set = msg->slope + yaw;
   c1 = msg->c1;
   c2 = msg->c2;
-	
+
 }
 void posecb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
   z = msg->pose.position.z;
 }
-void markercb(const warehouse_quad::markerInfo::ConstPtr& msg)
+void markercb(const hemd::markerInfo::ConstPtr& msg)
 {
   _detected = msg->detect;
 }

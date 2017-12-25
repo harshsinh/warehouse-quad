@@ -1,2 +1,0 @@
-bool detect
-string marker

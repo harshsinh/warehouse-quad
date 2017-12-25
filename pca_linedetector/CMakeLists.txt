@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   message_runtime
   cmake_modules
+  hemd
 )
 
 ## System dependencies are found with CMake's conventions
@@ -55,10 +56,11 @@ find_package (OpenCV REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  line.msg
-)
+#add_message_files(
+#  FILES
+#  line.msg
+#  markerInfo.msg
+#)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -78,6 +80,7 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  hemd
 )
 
 ################################################
@@ -112,8 +115,8 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES warehouse_quad
-#  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs message_generation message_runtime
-#  DEPENDS system_lib
+#  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs message_generation message_runtime image_transport cv_bridge
+#  DEPENDS system_lib message_runtime hemd
 )
 
 ###########
@@ -126,6 +129,7 @@ include_directories (include/${PROJECT_NAME})
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${Eigen_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -142,7 +146,16 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/warehouse_quad_node.cpp)
+add_executable (pcadetector_node
+				src/pcadetector_node.cxx
+)
 
+target_link_libraries (pcadetector_node
+						${catkin_LIBRARIES}
+						${OpenCV_LIBRARIES}
+)
+
+add_dependencies(pcadetector_node ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -210,4 +223,3 @@ include_directories(
 ## SubDirectories ##
 ####################
 
-add_subdirectory (src/pca-linedetector)
