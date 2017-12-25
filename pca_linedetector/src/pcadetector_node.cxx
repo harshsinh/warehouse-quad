@@ -376,7 +376,7 @@ int main (int argc, char** argv)
                 cv::circle(frame, transform((m2_*c1_ + c2_)/(1 - m1_*m2_), (m1_*c2_ + c1_)/(1 - m1_*m2_)), 5, cv::Scalar(0, 255, 0), 5);
 
             if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL && std::abs(c2_) < CROSS_THRESH) {
-                
+
                 /* If the marker_detected is high, force move to line follow mode */
                 pixelLine.mode = 2 - (1 && marker_detected);
 
@@ -397,9 +397,12 @@ int main (int argc, char** argv)
 
         finalmsg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
 
+        debug_msg.x = pixelLine.slope * 180/3.14159;
+
         pub.publish(pixelLine);
         threshpub.publish(threshmsg);
         finalimpub.publish(finalmsg);
+        debug.publish(debug_msg);
 
         if (cv::waitKey(1) == 113)
 		break;

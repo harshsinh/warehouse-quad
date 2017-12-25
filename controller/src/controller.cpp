@@ -32,7 +32,7 @@ void linecb(const hemd::line::ConstPtr& msg)
   yaw_set = msg->slope + yaw;
   c1 = msg->c1;
   c2 = msg->c2;
-	
+
 }
 void posecb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
@@ -124,6 +124,10 @@ switch (_flag_c) {
   			case 2:
   				
   				hold_cross();
+				if (mode_line == 1)
+  				{
+  					_flag_c = 1;
+  				}
   				break;
   			case 0:
   				
