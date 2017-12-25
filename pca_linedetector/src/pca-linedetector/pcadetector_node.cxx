@@ -22,8 +22,8 @@
 #include <geometry_msgs/Vector3.h>
 
 #define min 0.00001
-#define EIGMIN 0.10*1e6
-#define CROSS_THRESH 40
+#define EIGMIN 0.005*1e6
+#define CROSS_THRESH 80
 #define ERROR_VAL 1000
 #define n_grid 1
 #define ZED 0
@@ -43,7 +43,7 @@ cv::Mat frame;
 cv::VideoCapture cap;
 
 /* [TUNABLE] Color Thresh */
-auto yellow_low  = cv::Scalar(20, 80, 100);
+auto yellow_low  = cv::Scalar(20, 80, 155);
 auto yellow_high = cv::Scalar(40, 255, 255);
 
 /* Call back function for image */
@@ -372,9 +372,14 @@ int main (int argc, char** argv)
         finalmsg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
         // cv::imshow("reference", frame);
 
+	debug_msg.x = pixelLine.slope * 180/3.14159;
+
         pub.publish(pixelLine);
         threshpub.publish(threshmsg);
         finalimpub.publish(finalmsg);
+	debug.publish(debug_msg);
+
+	std::cout << "mode : " << pixelLine.mode << std::endl;
 
         if (cv::waitKey(1) == 113)
 		break;

@@ -124,6 +124,10 @@ switch (_flag_c) {
   			case 2:
   				
   				hold_cross();
+				if (mode_line == 1)
+  				{
+  					_flag_c = 1;
+  				}
   				break;
   			case 0:
   				
