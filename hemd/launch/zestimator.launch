@@ -25,8 +25,10 @@
         <rosparam file="$(find px4flow)/launch/px4flow_parameters.yaml"/>
     	</node>
 	<!-- estimator -->
-	<node name="main" pkg="warehouse_quad" type="main" /> 
-	
+	<node name="main" pkg="hemd" type="main" />
+
+	<!-- linedetector-->
+	<node name="pcadetector_node" pkg="pca_linedetector" type="pcadetector_node" args="0"/>
 
 
 </launch>
