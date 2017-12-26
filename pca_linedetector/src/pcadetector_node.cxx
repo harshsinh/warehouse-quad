@@ -222,8 +222,8 @@ int main (int argc, char** argv)
     ros::Publisher debug = nh.advertise<geometry_msgs::Vector3>("/debug", 100);
 
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
-    ros::Subscriber detect_sub = nh.subscribe ("/warehouse_quad/follow_line", 100, marker_detection_cb);
-    ros::Subscriber marker_sub = nh.subscribe ("/warehouse_quad/marker", 100, marker_cb);
+//    ros::Subscriber detect_sub = nh.subscribe ("/warehouse_quad/follow_line", 100, marker_detection_cb);
+//    ros::Subscriber marker_sub = nh.subscribe ("/warehouse_quad/marker", 100, marker_cb);
 
     /* Choose camera */
 	int camera = argv [1][0] - 48;

@@ -41,7 +41,7 @@ void MARKER::subscriber(){
 }
 
 void MARKER::videoCap(cv::Mat tmp){
-
+	cout<< "ok"<<endl;
 	if(tmp.empty()){
 		ROS_WARN("image is empty");
 		return;		
