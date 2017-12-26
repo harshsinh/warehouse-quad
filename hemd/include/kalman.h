@@ -20,6 +20,8 @@
 #include <px_comm/OpticalFlow.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <mavros_msgs/State.h>
+#include <fstream>
+#include <iostream>
 
 #include "sonar.h"
 
@@ -43,6 +45,7 @@ private:
 	void ekfPrediction();
 	void ekfUpdate();
 	void ekfUpdateHeight(double sonarDistance);
+	ofstream imu;
 
 	ros::Publisher anglesPub, accelefPub, posePub, setpointPub;
 

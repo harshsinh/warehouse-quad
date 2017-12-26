@@ -5,6 +5,7 @@ using namespace std;
 namespace HMDETECTION{
 
 EKF::EKF():currentImutime(0.0), previousImutime(0.0), imuState(WAITING), magState(WAITING), imuSeq(0), magSeq(0), ekfCurrentState(EKF_WAITING),X(19), X_(19), sigma(19,19), sigma_(19,19), sonarState(WAITING){
+imu.open("imu.txt");
 }
 
 void EKF::subscriber(){
@@ -19,7 +20,10 @@ void EKF::subscriber(){
 	posePub = nh_.advertise<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose",10);
 	setpointPub = nh_.advertise<geometry_msgs::PoseStamped>("/mavros/setpoint_position/local",10);
 
-	ros::spin();
+	ros::Rate r(100);
+	while(ros::ok()) {
+		r.sleep();
+	}
 }
 
 
@@ -45,12 +49,13 @@ void EKF::imuCallback(const sensor_msgs::Imu::ConstPtr& msg){
 
 	accelbf << msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z;
 	omegabf << msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z;
-
 	currentImutime = msg->header.stamp.toSec();
 
 	time = msg->header.stamp;
 	deltaImutime = currentImutime-previousImutime;
 	previousImutime = currentImutime;
+	cout << std::setprecision(12)<<currentImutime <<endl;
+    //imu<<deltaImutime<<"\t"<< msg->angular_velocity.x<<"\t"<<  msg->angular_velocity.y<<"\t"<<  msg->angular_velocity.z<<"\t"<< msg->linear_acceleration.x<<"\t"<< msg->linear_acceleration.y<<"\t"<<  msg->linear_acceleration.z<<"\t"<< magbf(0)<<"\t"<< magbf(1)<<"\t"<< magbf(2)<<endl;
 
 	if(imuState==WAITING){
 		imuState = INITIALIZED;

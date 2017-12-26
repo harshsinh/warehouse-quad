@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(warehouse_quad)
+project(hemd)
 
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
@@ -21,8 +21,8 @@ find_package(Boost REQUIRED COMPONENTS system)
 add_message_files(
    FILES
    markerInfo.msg
-   line.msg
-#   Message2.msg
+   line.msg  
+   quadstate.msg
  )
  
 generate_messages(
@@ -33,8 +33,9 @@ generate_messages(
 catkin_package(
    DEPENDS OpenCV Boost Eigen
    INCLUDE_DIRS include
-   CATKIN_DEPENDS roscpp message_runtime
+   CATKIN_DEPENDS roscpp message_runtime px_comm
 )
+
 
 include_directories(include
 					${Boost_INCLUDE_DIRS}
@@ -48,3 +49,6 @@ target_link_libraries(main zbar
     ${catkin_LIBRARIES}
     ${OpenCV_LIBRARIES}
     ${Boost_LIBRARIES})
+
+add_dependencies(main ${catkin_EXPORTED_TARGETS})
+

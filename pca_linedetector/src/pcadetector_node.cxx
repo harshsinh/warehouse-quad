@@ -11,21 +11,21 @@
  *
  ****************************************************************************/
 #include <cmath>
+#include "CVInclude.h"
 #include <vector>
 #include <string>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <std_msgs/Bool.h>
+#include "hemd/line.h"
+#include "hemd/markerInfo.h"
 #include <iostream>
 #include <ros/ros.h>
-#include "CVInclude.h"
-#include "warehouse_quad/line.h"
-#include "warehouse_quad/markerInfo.h"
 #include <geometry_msgs/Vector3.h>
 
 #define min 0.00001
-#define EIGMIN 0.10*1e6
-#define CROSS_THRESH 40
+#define EIGMIN 0.005*1e6
+#define CROSS_THRESH 80
 #define ERROR_VAL 1000
 #define n_grid 1
 #define ZED 0
@@ -48,7 +48,7 @@ cv::Mat frame;
 cv::VideoCapture cap;
 
 /* [TUNABLE] Color Thresh */
-auto yellow_low  = cv::Scalar(20, 80, 100);
+auto yellow_low  = cv::Scalar(20, 80, 155);
 auto yellow_high = cv::Scalar(40, 255, 255);
 
 /* Call back function for image */
@@ -69,7 +69,7 @@ void marker_detection_cb (const std_msgs::Bool& msg)
 }
 
 /* Call back for markers */
-void marker_cb (const warehouse_quad::markerInfo& msg)
+void marker_cb (const hemd::markerInfo& msg)
 {
 
     turn = ((msg.col == 4) && (msg.shelf == 1));
@@ -207,7 +207,7 @@ int main (int argc, char** argv)
 	ros::init (argc, argv, "linedetector_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate (50);
-    pca_linedetector::line pixelLine;
+    hemd::line pixelLine;
     geometry_msgs::Vector3 debug_msg;
 	image_transport::ImageTransport it(nh);
     sensor_msgs::ImagePtr threshmsg, finalmsg;
@@ -218,7 +218,7 @@ int main (int argc, char** argv)
 	image_transport::Publisher threshpub = it.advertise ("thresh", 1);
     image_transport::Publisher finalimpub = it.advertise ("final_image", 1);
 
-	ros::Publisher pub = nh.advertise<warehouse_quad::line>("/warehouse_quad/line", 100);
+	ros::Publisher pub = nh.advertise<hemd::line>("/warehouse_quad/line", 100);
     ros::Publisher debug = nh.advertise<geometry_msgs::Vector3>("/debug", 100);
 
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
@@ -376,7 +376,7 @@ int main (int argc, char** argv)
                 cv::circle(frame, transform((m2_*c1_ + c2_)/(1 - m1_*m2_), (m1_*c2_ + c1_)/(1 - m1_*m2_)), 5, cv::Scalar(0, 255, 0), 5);
 
             if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL && std::abs(c2_) < CROSS_THRESH) {
-                
+
                 /* If the marker_detected is high, force move to line follow mode */
                 pixelLine.mode = 2 - (1 && marker_detected);
 
@@ -397,9 +397,12 @@ int main (int argc, char** argv)
 
         finalmsg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
 
+        debug_msg.x = pixelLine.slope * 180/3.14159;
+
         pub.publish(pixelLine);
         threshpub.publish(threshmsg);
         finalimpub.publish(finalmsg);
+        debug.publish(debug_msg);
 
         if (cv::waitKey(1) == 113)
 		break;
