@@ -44,11 +44,18 @@ include_directories(include
                     ${Eigen_INCLUDE_DIRS})
 
 ## Declare a cpp executable
-add_executable(main src/main.cpp src/ekf.cpp src/sonar.cpp src/marker.cpp)
+add_executable(main src/main.cpp src/ekf.cpp src/sonar.cpp )
 target_link_libraries(main zbar
     ${catkin_LIBRARIES}
     ${OpenCV_LIBRARIES}
     ${Boost_LIBRARIES})
 
 add_dependencies(main ${catkin_EXPORTED_TARGETS})
+add_executable(qr src/qr.cpp src/marker.cpp )
+target_link_libraries(qr zbar
+    ${catkin_LIBRARIES}
+    ${OpenCV_LIBRARIES}
+    ${Boost_LIBRARIES})
+
+add_dependencies(qr ${catkin_EXPORTED_TARGETS})
 

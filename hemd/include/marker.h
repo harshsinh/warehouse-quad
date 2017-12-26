@@ -54,7 +54,7 @@ private:
     vector <string> barcodes; //store all the barcodes
     vector <string> barcodeHover; //store two barcodes at hover state
     vector <int> ylocation;
-
+    cv::VideoCapture cap;
     double timeBegin; //time counter when hover is hit
 
     quadState state; //current state of the quadrotor
