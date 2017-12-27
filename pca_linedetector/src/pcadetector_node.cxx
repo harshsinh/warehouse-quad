@@ -426,7 +426,7 @@ int main (int argc, char** argv)
 		if (flag) {
 
 			pixelLine.mode = 1;
-			if (c_buff < CROSS_THRESH + 10)
+			if (c_buff < CROSS_THRESH + 10 && c_buff != -ERROR_VAL)
 				flag = false;
 		}
             }

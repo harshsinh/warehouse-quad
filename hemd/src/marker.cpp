@@ -26,7 +26,6 @@ void MARKER::subscriber(){
 
 	//ros::Subscriber imageSub = nh_.subscribe("/usb_cam/image_raw", 10, &MARKER::imageCallback, this);
 
-
 	markerPub = nh_.advertise<hemd::markerInfo>("/warehouse_quad/marker",10); //publisher for markers
     followPub = nh_.advertise<std_msgs::Bool>("warehouse_quad/follow_line",10);//publisher to command line following after detection
     markerImgPub = nh_.advertise<sensor_msgs::Image>("warehouse_quad/marker/image",10);
@@ -46,6 +45,7 @@ void MARKER::subscriber(){
 }
 
 void MARKER::videoCap(cv::Mat tmp){
+	advertiseFollow(0);
 	if(tmp.empty()){
 		ROS_WARN("image is empty");
 		return;		
@@ -58,7 +58,7 @@ void MARKER::videoCap(cv::Mat tmp){
 	}
 	else if(state==DETECTED){
 		//ROS_WARN("DETECTED");
-		advertiseFollow(1);
+		//advertiseFollow(1);
 		return;
 	}
 	else if(state==DETECTION_START){
@@ -114,7 +114,6 @@ void MARKER::videoCap(cv::Mat tmp){
 		}
 		ros::Duration(20-ros::Time::now().toSec()+currentTime).sleep();
 		state=DETECTED;
-		ros::Duration(20-ros::Time::now().toSec()+currentTime).sleep();
 		timeBegin = ros::Time::now().toSec();
 		ROS_WARN("DETECTED");
 		advertiseFollow(1);
