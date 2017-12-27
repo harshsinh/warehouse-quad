@@ -112,7 +112,8 @@ void MARKER::videoCap(cv::Mat tmp){
 			}
 
 		}
-		ros::Duration(20-ros::Time::now().toSec()+currentTime).sleep();
+//		ros::Duration(20-ros::Time::now().toSec()+currentTime).sleep();
+		ros::Duration(10).sleep();
 		state=DETECTED;
 		timeBegin = ros::Time::now().toSec();
 		ROS_WARN("DETECTED");

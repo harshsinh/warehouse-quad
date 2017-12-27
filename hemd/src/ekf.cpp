@@ -414,7 +414,7 @@ void EKF::ekfUpdateHeight(double sonarDistance){
 		a2=a3;
 		a3=a4;
 		a4=0.2*X_(15);
-		pose.pose.position.z = X_(15);
+		pose.pose.position.z = mean;
 		posePub.publish(pose);
 
 	}

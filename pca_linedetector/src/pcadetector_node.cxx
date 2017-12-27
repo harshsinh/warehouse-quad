@@ -26,7 +26,7 @@
 
 #define min 0.00001
 #define EIGMIN 0.005*1e6
-#define CROSS_THRESH 60
+#define CROSS_THRESH 80
 #define ERROR_VAL 1000
 #define n_grid 1
 #define ZED 0
@@ -426,7 +426,7 @@ int main (int argc, char** argv)
 		if (flag) {
 
 			pixelLine.mode = 1;
-			if (c_buff < CROSS_THRESH + 10 && c_buff != -ERROR_VAL)
+			if ((c_buff < (CROSS_THRESH + 10)) && c_buff != -ERROR_VAL)
 				flag = false;
 		}
             }
