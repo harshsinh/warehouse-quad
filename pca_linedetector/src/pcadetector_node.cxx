@@ -41,9 +41,10 @@ double sonarVal;
 double threshold = 20/(TO_PI);
 double set_count = 0;
 int first_val_check = 0;
-bool marker_detected = false;
+bool follow = false;
 bool turn = false;
 bool pass = true;
+bool flag = false;
 double height = 0;
 
 /* Frame and Camera */
@@ -64,10 +65,10 @@ void imcallback (const sensor_msgs::ImageConstPtr& msg)
 }
 
 /* Call back for detection message */
-void marker_detection_cb (const std_msgs::Bool& msg)
+void follow_again (const std_msgs::Bool& msg)
 {
 
-    marker_detected = msg.data;
+    follow = msg.data;
     return;
 }
 
@@ -227,14 +228,14 @@ int main (int argc, char** argv)
 
 	/* Publish the final line detected image and line */
 	image_transport::Publisher threshpub = it.advertise ("thresh", 1);
-    image_transport::Publisher finalimpub = it.advertise ("final_image", 1);
+	image_transport::Publisher finalimpub = it.advertise ("final_image", 1);
 
 	ros::Publisher pub = nh.advertise<hemd::line>("/warehouse_quad/line", 100);
-    ros::Publisher debug = nh.advertise<geometry_msgs::Vector3>("/debug", 100);
+	ros::Publisher debug = nh.advertise<geometry_msgs::Vector3>("/debug", 100);
 
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
-//    ros::Subscriber detect_sub = nh.subscribe ("/warehouse_quad/follow_line", 100, marker_detection_cb);
-//    ros::Subscriber marker_sub = nh.subscribe ("/warehouse_quad/marker", 100, marker_cb);
+	ros::Subscriber detect_sub = nh.subscribe ("/warehouse_quad/follow_line", 1, follow_again);
+	ros::Subscriber marker_sub = nh.subscribe ("/warehouse_quad/marker", 1, marker_cb);
 	ros::Subscriber height_sub = nh.subscribe ("/mavros/vision_pose/pose", 100, height_cb);
 
 
@@ -340,18 +341,22 @@ int main (int argc, char** argv)
 
             auto principle_lines_h = PCA (Y0);
             auto principle_lines_v = PCA (X);
-		auto buffer_line_h = PCA(Y1);	
+		auto buffer_line_h = PCA (Y1);	
 
             auto m1_ = principle_lines_v[0];
             auto c1_ = principle_lines_v[1];
             auto m2_ = principle_lines_h[0];
             auto c2_ = principle_lines_h[1];
+		auto m_buff = buffer_line_h[0];
+		auto c_buff = buffer_line_h[1];	
 
             if (m1_ != -ERROR_VAL) {
 
+		/* Putting a cap on things */
                 if (std::abs(m1_ * TO_PI) > 90)
                     m1_ = CV_PI * 0.5 * ((m1_ > 0) ? 1 : -1);
 
+		/* Putting a cap on things */
                 if (std::abs(c1_) > 128)
                     c1_ = 128 * ((c1_ > 0) ? 1 : -1);
 
@@ -367,7 +372,6 @@ int main (int argc, char** argv)
                 cnts = 0;
 
                 cv::line(frame, transform(0, c1_), transform(-c1_/(m1_?m1_:min), 0), cv::Scalar(255, 255, 0), 2);
-//                std::cout << "vertical slope : " << m1_ * TO_PI << " intercept : " << c1_ << std::endl;
             }
 
             else {
@@ -385,36 +389,46 @@ int main (int argc, char** argv)
                     pixelLine.mode = 0;
                 }
 
+/******************************* Redundant Code ***************************/
+/* TODO: Depracate this */
             if (m2_ != -ERROR_VAL) {
 
+		/* Putting a cap on things */
                 if (std::abs(c2_) > 128)
                     c2_ = 128 * ((c2_ > 0) ? 1 : -1);
 
                 pixelLine.c2 = c2_;
 
                 cv::line(frame, transform(c2_, 0), transform(0, -c2_/(m2_?m2_:min)), cv::Scalar(255, 0, 255), 2);
-//                std::cout << "horizontal slope : " << m2_ * TO_PI << " intercept : " << c2_ << std::endl;
             }
+/*************************************************************************/
 
+		/* Draw the intersection point */
             if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL)
                 cv::circle(frame, transform((m2_*c1_ + c2_)/(1 - m1_*m2_), (m1_*c2_ + c1_)/(1 - m1_*m2_)), 5, cv::Scalar(0, 255, 0), 5);
 
             if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL && std::abs(c2_) < CROSS_THRESH) {
 
                 /* If the marker_detected is high, force move to line follow mode */
-                pixelLine.mode = 2 - (1 && marker_detected);
+                pixelLine.mode = 2;
 
-                /* On the turn publish mode 3 */
-                pixelLine.mode = pixelLine.mode + turn;
-
+		/* Putting a cap on things */
                 if (std::abs(c2_) > 128)
                     c2_ = 128 * ((c2_ > 0) ? 1 : -1);
 
-                if (std::abs(c1_) > 128)
-                    c1_ = 128 * ((c1_ > 0) ? 1 : -1);
-
                 pixelLine.c1 = c1_;
                 pixelLine.c2 = c2_;
+
+		/* If markers are detcted take orders from the line in Y1 */
+		if (follow)
+			flag = true;
+
+		if (flag) {
+
+			pixelLine.mode = 1;
+			if (c_buff < CROSS_THRESH + 10)
+				flag = false;
+		}
             }
 
         }
@@ -422,8 +436,7 @@ int main (int argc, char** argv)
         finalmsg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
 
         debug_msg.x = pixelLine.slope * 180/3.14159;
-	debug_msg.y = pixelLine.c1 * (height/0.7);
-	debug_msg.z = pixelLine.c1;
+	/* This is ensure that the tunnings do not change as height is changed */
 	pixelLine.c1 = pixelLine.c1 * (height/0.7);
 
 
