@@ -273,7 +273,7 @@ int main (int argc, char** argv)
             std::vector<cv::Vec2i> points[2*n_grid];
             std::vector<cv::Vec3f> h_grid;
             std::vector<cv::Vec3f> v_grid;
-            std::vector<cv::Vec2i> X, Y;
+            std::vector<cv::Vec2i> X, Y0, Y1;
 
             /* Slice Image in case of ZED camera */
             if (ZED) {
@@ -308,6 +308,7 @@ int main (int argc, char** argv)
 				x1_ = 128 - l[1]; x2_ = 128 - l[3];
                 y1_ = 128 - l[0]; y2_ = 128 - l[2];
 
+		/* Points for Vertical Line stored here */
                 if (std::abs(y2_ - y1_) <= std::abs(x2_ - x1_)) {
 
                     cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(255, 0, 0), 2, CV_AA);
@@ -315,14 +316,21 @@ int main (int argc, char** argv)
                     X.push_back (cv::Vec2i(x2_, y2_));
 		}
 
+		/* Points for Horizontal Line stored in Y0 and Y1 stores line as buffer if any */
                 else {
 
-			if (std::abs(x1_) < 90 && std::abs(x2_) < 90) {
+			if (std::abs(x1_) < CROSS_THRESH && std::abs(x2_) < CROSS_THRESH) {
 
                     		cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0, 0, 255), 2, CV_AA);
-				Y.push_back (cv::Vec2i(y1_, x1_));
-				Y.push_back (cv::Vec2i(y2_, x2_));
+				Y0.push_back (cv::Vec2i(y1_, x1_));
+				Y0.push_back (cv::Vec2i(y2_, x2_));
                 	}
+
+			else if (x1_ > CROSS_THRESH && x2_ > CROSS_THRESH) {
+
+				Y1.push_back (cv::Vec2i(y1_, x1_));
+				Y1.push_back (cv::Vec2i(y2_, x2_));
+			}
 		}
 
                 all_points.push_back(cv::Vec2i(x1_, y1_));
@@ -330,8 +338,9 @@ int main (int argc, char** argv)
 
             }
 
-            auto principle_lines_h = PCA (Y);
+            auto principle_lines_h = PCA (Y0);
             auto principle_lines_v = PCA (X);
+		auto buffer_line_h = PCA(Y1);	
 
             auto m1_ = principle_lines_v[0];
             auto c1_ = principle_lines_v[1];
