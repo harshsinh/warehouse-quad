@@ -40,7 +40,7 @@ public:
 	void advertiseFollow(bool follow);
 	cv::Mat cropImg(cv::Mat tmp);
 
-	enum quadState{HOVER, DETECTING, DETECTED};
+	enum quadState{HOVER, DETECTING, DETECTED, DETECTION_START, DETECTION_END};
 
 private:
 	hemd::markerInfo qr; //internal msg for markers

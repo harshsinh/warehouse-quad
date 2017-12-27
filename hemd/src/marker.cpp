@@ -13,9 +13,11 @@ void MARKER::lineCallback(const hemd::line::ConstPtr& msg){
 	if(msg->mode==2 && state==DETECTED && ((currentTime-timeBegin)>5.0)){
 		state = HOVER;
 	}
-Mat tmp;
-		cap >> tmp;
-		MARKER::videoCap(tmp); //capture video and do marker operations
+
+	Mat tmp;
+	cap >> tmp;
+	MARKER::videoCap(tmp); //capture video and do marker operations
+
 	
 }
 
@@ -31,38 +33,43 @@ void MARKER::subscriber(){
 	ros::Subscriber sub = nh_.subscribe("/warehouse_quad/line",10, &MARKER::lineCallback, this);
 
 	bool check=cap.open("http://192.168.42.129:8080/video?x.mjpeg");
-
-	//ros::Rate r(84);
+	if(!check){
+		ROS_WARN("Uable to open camera");
+	}
 	timeBegin = ros::Time::now().toSec();
 	while(ros::ok() & check==1){
+
 		ros::spin();		//r.sleep();
 	}
 	
 }
 
 void MARKER::videoCap(cv::Mat tmp){
-	cout<< "ok"<<endl;
 	if(tmp.empty()){
 		ROS_WARN("image is empty");
 		return;		
 	}
 	if(state==HOVER){
-		state=DETECTING;
+		ROS_WARN("HOVER");
+		state=DETECTION_START;
 		advertiseFollow(0);
 		return;
 	}
 	else if(state==DETECTED){
+		//ROS_WARN("DETECTED");
 		advertiseFollow(1);
 		return;
 	}
-	else if(state==DETECTING && (ros::Time::now().toSec()-timeBegin)>35.0){
+	else if(state==DETECTION_START){
+		ROS_WARN("DETECTION_START");
 		timeBegin = ros::Time::now().toSec();
 		advertiseFollow(0);
+		state=DETECTING;
+		return;
 	}
 
 
 	cv::Mat crop = cropImg(tmp); //crop the image
-
 	cv::Mat frame;
 	cvtColor( crop, frame, CV_BGR2GRAY ); //convert to gray scale
 	publishMarkerImg(frame);
@@ -73,8 +80,9 @@ void MARKER::videoCap(cv::Mat tmp){
 	detectMarker(frame);
 
 	double currentTime = ros::Time::now().toSec();//check the current time
-	cout << currentTime-timeBegin<<endl;
-		if( barcodeHover.size()==2){  //if both barcodes are detected
+	//cout << currentTime-timeBegin<<endl;
+	if( barcodeHover.size()==2){  //if both barcodes are detected
+		ROS_WARN("TWO_MARKERS");
 		for(int i=0;i<barcodeHover.size();i++){
 			bool check=false; //check if the marker exist in barcodes string array
 			for(int j=0;j<barcodes.size();j++){
@@ -103,8 +111,10 @@ void MARKER::videoCap(cv::Mat tmp){
 			}
 
 		}
+		ros::Duration(20-ros::Time::now().toSec()+currentTime).sleep();
 		state=DETECTED;
 		timeBegin = ros::Time::now().toSec();
+		ROS_WARN("DETECTED");
 		advertiseFollow(1);
 		barcodeHover.clear();
 		ylocation.clear();
@@ -119,7 +129,8 @@ void MARKER::videoCap(cv::Mat tmp){
 		}
 		return;
 	}
-	else if((currentTime-timeBegin) > 30 && barcodeHover.size()==1){
+	else if((currentTime-timeBegin) > 20 && barcodeHover.size()==1){
+		ROS_WARN("ONE_MARKER");
 		bool check=false; //check if the marker exist in barcodes string array
 		for(int j=0;j<barcodes.size();j++){
 			if(barcodeHover[0]==barcodes[j]){
@@ -148,16 +159,20 @@ void MARKER::videoCap(cv::Mat tmp){
 		else{
 			col++;
 		}
+		ROS_WARN("DETECTED");
 		advertiseFollow(1);
 		state=DETECTED;
 		timeBegin = ros::Time::now().toSec();
 		barcodeHover.clear();
-		cout << barcodeHover.size()<<endl;
+		//cout << barcodeHover.size()<<endl;
 		ylocation.clear();
 		return;
 	}
-	else if((currentTime-timeBegin) > 30 && barcodeHover.size()==0){
+	else if((currentTime-timeBegin) > 20 && barcodeHover.size()==0){
 		state=DETECTED;
+		ROS_WARN("NO MARKER DETECTED");
+		ROS_WARN("END_DETECTION");
+		advertiseFollow(1);
 		timeBegin = ros::Time::now().toSec();
 				if(col%4==0){
 			shelf++;
