@@ -31,7 +31,9 @@ void MARKER::subscriber(){
 	ros::Subscriber sub = nh_.subscribe("/warehouse_quad/line",10, &MARKER::lineCallback, this);
 
 	bool check=cap.open("http://192.168.42.129:8080/video?x.mjpeg");
-
+	if(!check){
+		ROS_WARN("Unable to open camera");
+	}
 	//ros::Rate r(84);
 	timeBegin = ros::Time::now().toSec();
 	while(ros::ok() & check==1){
