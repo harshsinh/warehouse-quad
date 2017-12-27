@@ -41,7 +41,7 @@ void MARKER::subscriber(){
 }
 
 void MARKER::videoCap(cv::Mat tmp){
-	cout<< "ok"<<endl;
+	//cout<< "ok"<<endl;
 	if(tmp.empty()){
 		ROS_WARN("image is empty");
 		return;		
@@ -73,7 +73,7 @@ void MARKER::videoCap(cv::Mat tmp){
 	detectMarker(frame);
 
 	double currentTime = ros::Time::now().toSec();//check the current time
-	cout << currentTime-timeBegin<<endl;
+	//cout << currentTime-timeBegin<<endl;
 		if( barcodeHover.size()==2){  //if both barcodes are detected
 		for(int i=0;i<barcodeHover.size();i++){
 			bool check=false; //check if the marker exist in barcodes string array
@@ -104,6 +104,7 @@ void MARKER::videoCap(cv::Mat tmp){
 
 		}
 		state=DETECTED;
+		ros::Duration(20-ros::Time::now().toSec()+currentTime).sleep();
 		timeBegin = ros::Time::now().toSec();
 		advertiseFollow(1);
 		barcodeHover.clear();
@@ -119,7 +120,7 @@ void MARKER::videoCap(cv::Mat tmp){
 		}
 		return;
 	}
-	else if((currentTime-timeBegin) > 30 && barcodeHover.size()==1){
+	else if((currentTime-timeBegin) > 20 && barcodeHover.size()==1){
 		bool check=false; //check if the marker exist in barcodes string array
 		for(int j=0;j<barcodes.size();j++){
 			if(barcodeHover[0]==barcodes[j]){
@@ -152,11 +153,11 @@ void MARKER::videoCap(cv::Mat tmp){
 		state=DETECTED;
 		timeBegin = ros::Time::now().toSec();
 		barcodeHover.clear();
-		cout << barcodeHover.size()<<endl;
+		//cout << barcodeHover.size()<<endl;
 		ylocation.clear();
 		return;
 	}
-	else if((currentTime-timeBegin) > 30 && barcodeHover.size()==0){
+	else if((currentTime-timeBegin) > 20 && barcodeHover.size()==0){
 		state=DETECTED;
 		timeBegin = ros::Time::now().toSec();
 				if(col%4==0){
@@ -196,6 +197,7 @@ void MARKER::detectMarker(cv::Mat frame){
 	for (zbar::Image::SymbolIterator symbol = zbar_image.symbol_begin(); symbol != zbar_image.symbol_end(); ++symbol){
 
 		std::string barcode = symbol->get_data();
+		cout << barcode << endl;
 		bool markerCheck = 0;
 		// check if the current barcode exits in current string
 
@@ -240,4 +242,5 @@ void MARKER::imageCallback(const sensor_msgs::Image::ConstPtr& msg){
 }
 
 }
+
 

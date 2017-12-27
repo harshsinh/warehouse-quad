@@ -22,10 +22,11 @@
 #include <iostream>
 #include <ros/ros.h>
 #include <geometry_msgs/Vector3.h>
+#include <geometry_msgs/PoseStamped.h>
 
 #define min 0.00001
 #define EIGMIN 0.005*1e6
-#define CROSS_THRESH 80
+#define CROSS_THRESH 60
 #define ERROR_VAL 1000
 #define n_grid 1
 #define ZED 0
@@ -37,11 +38,13 @@ using namespace Eigen;
 /* Necessary Globals */
 VectorXf sonar_set(10);
 double sonarVal;
-double threshold = 20;
+double threshold = 20/(TO_PI);
 double set_count = 0;
 int first_val_check = 0;
 bool marker_detected = false;
 bool turn = false;
+bool pass = true;
+double height = 0;
 
 /* Frame and Camera */
 cv::Mat frame;
@@ -74,6 +77,14 @@ void marker_cb (const hemd::markerInfo& msg)
 
     turn = ((msg.col == 4) && (msg.shelf == 1));
     return;
+}
+
+/* Call back for height */
+void height_cb (const geometry_msgs::PoseStamped& msg)
+{
+
+	height = msg.pose.position.z;
+	return;
 }
 
 /* Transform from new coordinate system */
@@ -137,7 +148,7 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
         values.push_back(eigval[0]);
     }
 
-    std::cout << "eigen val : " << values[0] << " : " << values[1] << std::endl;
+//    std::cout << "eigen val : " << values[0] << " : " << values[1] << std::endl;
 
     if (values[0] < EIGMIN)
         return (cv::Vec4i(-ERROR_VAL, -ERROR_VAL, -ERROR_VAL, -ERROR_VAL));
@@ -153,7 +164,7 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
     return (lines);
 }
 
-bool median_filter (int distance, int * c1_prev)
+bool median_filter (double distance)
 {
 
     int i;
@@ -176,7 +187,6 @@ bool median_filter (int distance, int * c1_prev)
 	}
 
 	else{
-			std::cout <<"okay" <<std::endl;
 
 		    std::sort(sonar_set_copy.data(), sonar_set_copy.data()+sonar_set_copy.size()); //arranging the 400 set of data in increasing order
 
@@ -186,17 +196,18 @@ bool median_filter (int distance, int * c1_prev)
 			    for(i=0;i<9;i++){
 			    sonar_set[i] = sonar_set[i+1]; // updating the sonar set for next 400 data
 			}
-            *c1_prev = distance;
+
+    		sonar_set[9] = distance;
 		    return true;
 		}
 		
         else{
 
+    		sonar_set[9] = distance;
 		    return false;
 		}
 	}
 
-    sonar_set[9] = distance;
     return false;
 }
 
@@ -224,6 +235,8 @@ int main (int argc, char** argv)
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
 //    ros::Subscriber detect_sub = nh.subscribe ("/warehouse_quad/follow_line", 100, marker_detection_cb);
 //    ros::Subscriber marker_sub = nh.subscribe ("/warehouse_quad/marker", 100, marker_cb);
+	ros::Subscriber height_sub = nh.subscribe ("/mavros/vision_pose/pose", 100, height_cb);
+
 
     /* Choose camera */
 	int camera = argv [1][0] - 48;
@@ -300,14 +313,17 @@ int main (int argc, char** argv)
                     cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(255, 0, 0), 2, CV_AA);
                     X.push_back (cv::Vec2i(x1_, y1_));
                     X.push_back (cv::Vec2i(x2_, y2_));
-                }
+		}
 
                 else {
 
-                    cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0, 0, 255), 2, CV_AA);
-                    Y.push_back (cv::Vec2i(y1_, x1_));
-                    Y.push_back (cv::Vec2i(y2_, x2_));
-                }
+			if (std::abs(x1_) < 90 && std::abs(x2_) < 90) {
+
+                    		cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0, 0, 255), 2, CV_AA);
+				Y.push_back (cv::Vec2i(y1_, x1_));
+				Y.push_back (cv::Vec2i(y2_, x2_));
+                	}
+		}
 
                 all_points.push_back(cv::Vec2i(x1_, y1_));
                 all_points.push_back(cv::Vec2i(x2_, y2_));
@@ -330,20 +346,19 @@ int main (int argc, char** argv)
                 if (std::abs(c1_) > 128)
                     c1_ = 128 * ((c1_ > 0) ? 1 : -1);
 
+		pass =	median_filter(m1_);
+
                 pixelLine.header.seq = ++msg_count;
                 pixelLine.header.stamp = ros::Time::now();
                 pixelLine.header.frame_id = "0";
                 pixelLine.slope = m1_;
-		        std::cout << "ok" << std::endl;
-                //pixelLine.c1 = (median_filter(c1_, &c1_prev) ? c1_ : c1_prev);
-                //pixelLine.c1 = (median_filter(c1_, &c1_prev) ? c1_ : c1_prev);
-		        pixelLine.c1 = c1_;
+		pixelLine.c1 = c1_;
                 pixelLine.c2 = 0;
                 pixelLine.mode = 1;
                 cnts = 0;
 
                 cv::line(frame, transform(0, c1_), transform(-c1_/(m1_?m1_:min), 0), cv::Scalar(255, 255, 0), 2);
-                std::cout << "vertical slope : " << m1_ * TO_PI << " intercept : " << c1_ << std::endl;
+//                std::cout << "vertical slope : " << m1_ * TO_PI << " intercept : " << c1_ << std::endl;
             }
 
             else {
@@ -369,7 +384,7 @@ int main (int argc, char** argv)
                 pixelLine.c2 = c2_;
 
                 cv::line(frame, transform(c2_, 0), transform(0, -c2_/(m2_?m2_:min)), cv::Scalar(255, 0, 255), 2);
-                std::cout << "horizontal slope : " << m2_ * TO_PI << " intercept : " << c2_ << std::endl;
+//                std::cout << "horizontal slope : " << m2_ * TO_PI << " intercept : " << c2_ << std::endl;
             }
 
             if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL)
@@ -398,8 +413,13 @@ int main (int argc, char** argv)
         finalmsg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
 
         debug_msg.x = pixelLine.slope * 180/3.14159;
+	debug_msg.y = pixelLine.c1 * (height/0.7);
+	debug_msg.z = pixelLine.c1;
+	pixelLine.c1 = pixelLine.c1 * (height/0.7);
 
-        pub.publish(pixelLine);
+
+	if (pass)
+		pub.publish(pixelLine);
         threshpub.publish(threshmsg);
         finalimpub.publish(finalmsg);
         debug.publish(debug_msg);
