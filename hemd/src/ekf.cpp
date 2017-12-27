@@ -4,7 +4,7 @@ using namespace std;
 
 namespace HMDETECTION{
 
-EKF::EKF():currentImutime(0.0), previousImutime(0.0), imuState(WAITING), magState(WAITING), imuSeq(0), magSeq(0), ekfCurrentState(EKF_WAITING),X(19), X_(19), sigma(19,19), sigma_(19,19), sonarState(WAITING){
+EKF::EKF():currentImutime(0.0), previousImutime(0.0), imuState(WAITING), magState(WAITING), countHeight(0), imuSeq(0), magSeq(0), ekfCurrentState(EKF_WAITING),X(19), X_(19), sigma(19,19), sigma_(19,19), sonarState(WAITING){
 }
 
 void EKF::subscriber(){
@@ -387,12 +387,52 @@ void EKF::ekfUpdateHeight(double sonarDistance){
 	pose.header.stamp = ros::Time::now();
 	pose.header.frame_id = "quadPose";
 
-	pose.pose.position.x = X_(18);
-	pose.pose.position.y = X_(18);
-	pose.pose.position.z = X_(15);
-	posePub.publish(pose);
+	pose.pose.position.x = 0;
+	pose.pose.position.y = X_(15); 
+	double mean=0;
 
-}
+	switch(countHeight){
+	case 0:
+		a1 = 0.2*X_(15);
+		countHeight++;	
+		break;
+	case 1:
+		a2 = 0.2*X_(15);
+		countHeight++;
+		break;
+	case 2: 
+		a3 = 0.2*X_(15);
+		countHeight++;
+		break;
+	case 3:
+		a4 = 0.2*X_(15);
+		countHeight++;
+		break;
+	default:
+		mean = a1+a2+a3+a4+0.2*X_(15);
+		a1=a2;
+		a2=a3;
+		a3=a4;
+		a4=0.2*X_(15);
+		pose.pose.position.z = X_(15);
+		posePub.publish(pose);
+
+	}
+	//if(heightArray.size()<5){
+	//	heightArray.push_back(X_(15));
+	//	return;
+	//}
+	//else{
+	//for(int a=0; a<5;a++){
+		
+	//	mean = mean + (0.2* heightArray[a-1]);	
+	//	heightArray[a-1] =  heightArray[a];
+	//}
+	//pose.pose.position.z = mean+(0.2*X_(15));
+	//heightArray[4] = X_(15);
+	//}
+
+	}
 
 
 }

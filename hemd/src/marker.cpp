@@ -36,6 +36,7 @@ void MARKER::subscriber(){
 	if(!check){
 		ROS_WARN("Uable to open camera");
 	}
+	//ros::Rate r(84);
 	timeBegin = ros::Time::now().toSec();
 	while(ros::ok() & check==1){
 
@@ -113,6 +114,7 @@ void MARKER::videoCap(cv::Mat tmp){
 		}
 		ros::Duration(20-ros::Time::now().toSec()+currentTime).sleep();
 		state=DETECTED;
+		ros::Duration(20-ros::Time::now().toSec()+currentTime).sleep();
 		timeBegin = ros::Time::now().toSec();
 		ROS_WARN("DETECTED");
 		advertiseFollow(1);
@@ -211,6 +213,7 @@ void MARKER::detectMarker(cv::Mat frame){
 	for (zbar::Image::SymbolIterator symbol = zbar_image.symbol_begin(); symbol != zbar_image.symbol_end(); ++symbol){
 
 		std::string barcode = symbol->get_data();
+		cout << barcode << endl;
 		bool markerCheck = 0;
 		// check if the current barcode exits in current string
 
@@ -255,4 +258,5 @@ void MARKER::imageCallback(const sensor_msgs::Image::ConstPtr& msg){
 }
 
 }
+
 

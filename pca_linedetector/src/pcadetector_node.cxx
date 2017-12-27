@@ -22,10 +22,11 @@
 #include <iostream>
 #include <ros/ros.h>
 #include <geometry_msgs/Vector3.h>
+#include <geometry_msgs/PoseStamped.h>
 
 #define min 0.00001
 #define EIGMIN 0.005*1e6
-#define CROSS_THRESH 80
+#define CROSS_THRESH 60
 #define ERROR_VAL 1000
 #define n_grid 1
 #define ZED 0
@@ -37,11 +38,14 @@ using namespace Eigen;
 /* Necessary Globals */
 VectorXf sonar_set(10);
 double sonarVal;
-double threshold = 20;
+double threshold = 20/(TO_PI);
 double set_count = 0;
 int first_val_check = 0;
-bool marker_detected = false;
+bool follow = false;
 bool turn = false;
+bool pass = true;
+bool flag = false;
+double height = 0;
 
 /* Frame and Camera */
 cv::Mat frame;
@@ -61,10 +65,10 @@ void imcallback (const sensor_msgs::ImageConstPtr& msg)
 }
 
 /* Call back for detection message */
-void marker_detection_cb (const std_msgs::Bool& msg)
+void follow_again (const std_msgs::Bool& msg)
 {
 
-    marker_detected = msg.data;
+    follow = msg.data;
     return;
 }
 
@@ -74,6 +78,14 @@ void marker_cb (const hemd::markerInfo& msg)
 
     turn = ((msg.col == 4) && (msg.shelf == 1));
     return;
+}
+
+/* Call back for height */
+void height_cb (const geometry_msgs::PoseStamped& msg)
+{
+
+	height = msg.pose.position.z;
+	return;
 }
 
 /* Transform from new coordinate system */
@@ -137,7 +149,7 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
         values.push_back(eigval[0]);
     }
 
-    std::cout << "eigen val : " << values[0] << " : " << values[1] << std::endl;
+//    std::cout << "eigen val : " << values[0] << " : " << values[1] << std::endl;
 
     if (values[0] < EIGMIN)
         return (cv::Vec4i(-ERROR_VAL, -ERROR_VAL, -ERROR_VAL, -ERROR_VAL));
@@ -153,7 +165,7 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
     return (lines);
 }
 
-bool median_filter (int distance, int * c1_prev)
+bool median_filter (double distance)
 {
 
     int i;
@@ -176,7 +188,6 @@ bool median_filter (int distance, int * c1_prev)
 	}
 
 	else{
-			std::cout <<"okay" <<std::endl;
 
 		    std::sort(sonar_set_copy.data(), sonar_set_copy.data()+sonar_set_copy.size()); //arranging the 400 set of data in increasing order
 
@@ -186,17 +197,18 @@ bool median_filter (int distance, int * c1_prev)
 			    for(i=0;i<9;i++){
 			    sonar_set[i] = sonar_set[i+1]; // updating the sonar set for next 400 data
 			}
-            *c1_prev = distance;
+
+    		sonar_set[9] = distance;
 		    return true;
 		}
 		
         else{
 
+    		sonar_set[9] = distance;
 		    return false;
 		}
 	}
 
-    sonar_set[9] = distance;
     return false;
 }
 
@@ -216,14 +228,16 @@ int main (int argc, char** argv)
 
 	/* Publish the final line detected image and line */
 	image_transport::Publisher threshpub = it.advertise ("thresh", 1);
-    image_transport::Publisher finalimpub = it.advertise ("final_image", 1);
+	image_transport::Publisher finalimpub = it.advertise ("final_image", 1);
 
 	ros::Publisher pub = nh.advertise<hemd::line>("/warehouse_quad/line", 100);
-    ros::Publisher debug = nh.advertise<geometry_msgs::Vector3>("/debug", 100);
+	ros::Publisher debug = nh.advertise<geometry_msgs::Vector3>("/debug", 100);
 
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
-//    ros::Subscriber detect_sub = nh.subscribe ("/warehouse_quad/follow_line", 100, marker_detection_cb);
-//    ros::Subscriber marker_sub = nh.subscribe ("/warehouse_quad/marker", 100, marker_cb);
+	ros::Subscriber detect_sub = nh.subscribe ("/warehouse_quad/follow_line", 1, follow_again);
+	ros::Subscriber marker_sub = nh.subscribe ("/warehouse_quad/marker", 1, marker_cb);
+	ros::Subscriber height_sub = nh.subscribe ("/mavros/vision_pose/pose", 100, height_cb);
+
 
     /* Choose camera */
 	int camera = argv [1][0] - 48;
@@ -260,7 +274,7 @@ int main (int argc, char** argv)
             std::vector<cv::Vec2i> points[2*n_grid];
             std::vector<cv::Vec3f> h_grid;
             std::vector<cv::Vec3f> v_grid;
-            std::vector<cv::Vec2i> X, Y;
+            std::vector<cv::Vec2i> X, Y0, Y1;
 
             /* Slice Image in case of ZED camera */
             if (ZED) {
@@ -295,55 +309,69 @@ int main (int argc, char** argv)
 				x1_ = 128 - l[1]; x2_ = 128 - l[3];
                 y1_ = 128 - l[0]; y2_ = 128 - l[2];
 
+		/* Points for Vertical Line stored here */
                 if (std::abs(y2_ - y1_) <= std::abs(x2_ - x1_)) {
 
                     cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(255, 0, 0), 2, CV_AA);
                     X.push_back (cv::Vec2i(x1_, y1_));
                     X.push_back (cv::Vec2i(x2_, y2_));
-                }
+		}
 
+		/* Points for Horizontal Line stored in Y0 and Y1 stores line as buffer if any */
                 else {
 
-                    cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0, 0, 255), 2, CV_AA);
-                    Y.push_back (cv::Vec2i(y1_, x1_));
-                    Y.push_back (cv::Vec2i(y2_, x2_));
-                }
+			if (std::abs(x1_) < CROSS_THRESH && std::abs(x2_) < CROSS_THRESH) {
+
+                    		cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0, 0, 255), 2, CV_AA);
+				Y0.push_back (cv::Vec2i(y1_, x1_));
+				Y0.push_back (cv::Vec2i(y2_, x2_));
+                	}
+
+			else if (x1_ > CROSS_THRESH && x2_ > CROSS_THRESH) {
+
+				Y1.push_back (cv::Vec2i(y1_, x1_));
+				Y1.push_back (cv::Vec2i(y2_, x2_));
+			}
+		}
 
                 all_points.push_back(cv::Vec2i(x1_, y1_));
                 all_points.push_back(cv::Vec2i(x2_, y2_));
 
             }
 
-            auto principle_lines_h = PCA (Y);
+            auto principle_lines_h = PCA (Y0);
             auto principle_lines_v = PCA (X);
+		auto buffer_line_h = PCA (Y1);	
 
             auto m1_ = principle_lines_v[0];
             auto c1_ = principle_lines_v[1];
             auto m2_ = principle_lines_h[0];
             auto c2_ = principle_lines_h[1];
+		auto m_buff = buffer_line_h[0];
+		auto c_buff = buffer_line_h[1];	
 
             if (m1_ != -ERROR_VAL) {
 
+		/* Putting a cap on things */
                 if (std::abs(m1_ * TO_PI) > 90)
                     m1_ = CV_PI * 0.5 * ((m1_ > 0) ? 1 : -1);
 
+		/* Putting a cap on things */
                 if (std::abs(c1_) > 128)
                     c1_ = 128 * ((c1_ > 0) ? 1 : -1);
+
+		pass =	median_filter(m1_);
 
                 pixelLine.header.seq = ++msg_count;
                 pixelLine.header.stamp = ros::Time::now();
                 pixelLine.header.frame_id = "0";
                 pixelLine.slope = m1_;
-		        std::cout << "ok" << std::endl;
-                //pixelLine.c1 = (median_filter(c1_, &c1_prev) ? c1_ : c1_prev);
-                //pixelLine.c1 = (median_filter(c1_, &c1_prev) ? c1_ : c1_prev);
-		        pixelLine.c1 = c1_;
+		pixelLine.c1 = c1_;
                 pixelLine.c2 = 0;
                 pixelLine.mode = 1;
                 cnts = 0;
 
                 cv::line(frame, transform(0, c1_), transform(-c1_/(m1_?m1_:min), 0), cv::Scalar(255, 255, 0), 2);
-                std::cout << "vertical slope : " << m1_ * TO_PI << " intercept : " << c1_ << std::endl;
             }
 
             else {
@@ -361,36 +389,46 @@ int main (int argc, char** argv)
                     pixelLine.mode = 0;
                 }
 
+/******************************* Redundant Code ***************************/
+/* TODO: Depracate this */
             if (m2_ != -ERROR_VAL) {
 
+		/* Putting a cap on things */
                 if (std::abs(c2_) > 128)
                     c2_ = 128 * ((c2_ > 0) ? 1 : -1);
 
                 pixelLine.c2 = c2_;
 
                 cv::line(frame, transform(c2_, 0), transform(0, -c2_/(m2_?m2_:min)), cv::Scalar(255, 0, 255), 2);
-                std::cout << "horizontal slope : " << m2_ * TO_PI << " intercept : " << c2_ << std::endl;
             }
+/*************************************************************************/
 
+		/* Draw the intersection point */
             if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL)
                 cv::circle(frame, transform((m2_*c1_ + c2_)/(1 - m1_*m2_), (m1_*c2_ + c1_)/(1 - m1_*m2_)), 5, cv::Scalar(0, 255, 0), 5);
 
             if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL && std::abs(c2_) < CROSS_THRESH) {
 
                 /* If the marker_detected is high, force move to line follow mode */
-                pixelLine.mode = 2 - (1 && marker_detected);
+                pixelLine.mode = 2;
 
-                /* On the turn publish mode 3 */
-                pixelLine.mode = pixelLine.mode + turn;
-
+		/* Putting a cap on things */
                 if (std::abs(c2_) > 128)
                     c2_ = 128 * ((c2_ > 0) ? 1 : -1);
 
-                if (std::abs(c1_) > 128)
-                    c1_ = 128 * ((c1_ > 0) ? 1 : -1);
-
                 pixelLine.c1 = c1_;
                 pixelLine.c2 = c2_;
+
+		/* If markers are detcted take orders from the line in Y1 */
+		if (follow)
+			flag = true;
+
+		if (flag) {
+
+			pixelLine.mode = 1;
+			if (c_buff < CROSS_THRESH + 10)
+				flag = false;
+		}
             }
 
         }
@@ -398,8 +436,12 @@ int main (int argc, char** argv)
         finalmsg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
 
         debug_msg.x = pixelLine.slope * 180/3.14159;
+	/* This is ensure that the tunnings do not change as height is changed */
+	pixelLine.c1 = pixelLine.c1 * (height/0.7);
 
-        pub.publish(pixelLine);
+
+	if (pass)
+		pub.publish(pixelLine);
         threshpub.publish(threshmsg);
         finalimpub.publish(finalmsg);
         debug.publish(debug_msg);

@@ -66,9 +66,11 @@ private:
 
 	double roll, pitch, yaw;
 	sonar sonarVal;
-
+	double a1, a2, a3, a4, a5;
+	int countHeight;
 	double height, sonarRaw;
 
+	std::vector<double> heightArray;
 
 	ros::Time time;
 };
