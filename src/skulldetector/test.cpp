@@ -1,145 +1,68 @@
-#include "CVInclude.h"
-#include <ros/ros.h>
-#include <math.h>
-#include <vector>
-#include <string>
-#include <iostream>
-//#include <geometry_msgs/Vector3.h>
-//#include <cv_bridge/cv_bridge.h>
-//#include <sensor_msgs/Image.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/ml/ml.hpp>
 
 using namespace cv;
-using namespace std;
 
-VideoCapture cap;
-
-//functions to draw triangle of skull
-void drawStuff();
-void drawAllTriangles(Mat&, const vector< vector<Point> >&);
-
-//cv::mat variables
-Mat frame,img_gray,canny_output,drawing,blurred,thresh1,closing,opening,temp;
-
-//detector
-bool detector=0;
-
-//frame from callback
-/*void imcallback (const sensor_msgs::ImageConstPtr& msg)
+int main()
 {
-	frame = cv_bridge::toCvShare (msg) -> image;
-	return;
-}*/
+    // Data for visual representation
+    int width = 512, height = 512;
+    Mat image = Mat::zeros(height, width, CV_8UC3);
 
-// int thresh = 100;
-// int max_thresh = 255;
+    // Set up training data
+    float labels[4] = {1.0, -1.0, -1.0, -1.0};
+    Mat labelsMat(4, 1, CV_32FC1, labels);
 
-int main (int argc, char** argv)
-{
+    float trainingData[4][2] = { {501, 10}, {255, 10}, {501, 255}, {10, 501} };
+    Mat trainingDataMat(4, 2, CV_32FC1, trainingData);
 
-	//ros node stuff
-	ros::init (argc, argv, "skulldetector_node");
-	ros::NodeHandle nh;
-	ros::Rate loop_rate (50);
-	//geometry_msgs::Vector3 pixelLine;
-	//image_transport::ImageTransport it(nh);
+    // Set up SVM's parameters
+    CvSVMParams params;
+    params.svm_type    = CvSVM::C_SVC;
+    params.kernel_type = CvSVM::LINEAR;
+    params.term_crit   = cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6);
 
-	// Publish the final line detected image and line
-	//image_transport::Publisher threshpub = it.advertise ("thresholded", 1);
-	//ros::Publisher pub = nh.advertise<geometry_msgs::Vector3>("/line", 100);
-	//image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
+    // Train the SVM
+    CvSVM SVM;
+    SVM.train(trainingDataMat, labelsMat, Mat(), Mat(), params);
 
+    Vec3b green(0,255,0), blue (255,0,0);
+    // Show the decision regions given by the SVM
+    for (int i = 0; i < image.rows; ++i)
+        for (int j = 0; j < image.cols; ++j)
+        {
+            Mat sampleMat = (Mat_<float>(1,2) << j,i);
+            float response = SVM.predict(sampleMat);
 
- //check for ip camera
-bool check=cap.open("http://192.168.0.102:8080/video?x.mjpeg");
-
-
-  if(!check)
-      {
-        cout<<"camera not found"<<endl;
-        return -1;
-      }
-
-
-
-while ( cap.isOpened()& ros::ok())
-
-//int camera = argv [1][0] - 48;
-
-//if (camera >= 0 && camera < 10) {
-
-//  std::cout << camera << std::endl;
-  //cap.open (camera);
-
-  //if (!cap.isOpened()) {
-
-    //std::cout << "Unable to open camera " << camera << std::endl;
-    ///ROS_ERROR_STREAM ("Unable to open camera");
-    //return -1;
-
-  //}
-
-while (nh.ok()){
-
-  if (cap.isOpened())
-    cap >> frame;
-
-  if (!frame.empty()) {
-
-
-    // cvtColor(frame,img_gray,CV_RGB2GRAY);
-     cvtColor (frame, img_gray, CV_BGR2HSV);
-     inRange (img_gray,  Scalar(20, 80, 100),  Scalar(40, 255, 255), thresh1);
-     GaussianBlur (thresh1, blurred,   Size(11, 11), 0, 0);
-     threshold (blurred, thresh1, 127, 255, CV_THRESH_BINARY);
-     morphologyEx (thresh1, closing,  MORPH_CLOSE,  getStructuringElement( MORPH_RECT,  Size(2, 2),   Point(-1, -1)));
-     morphologyEx (closing, opening,  MORPH_OPEN,  getStructuringElement( MORPH_RECT,  Size(2, 2),   Point(-1, -1)));
-     Canny (thresh1, temp, 50, 150, 3);
-     imshow("InputImage",frame);
-     drawStuff();
-  if (cv::waitKey(1) == 113)
-    break;
-
-  }
-    ros::spinOnce();
-    loop_rate.sleep();
-    }
-return 0;
-
-}
-
-void drawStuff(){
-    vector<vector<Point> > contours;
-    vector<Vec4i> hierarchy;
-
-    // Canny( img_gray, canny_output, thresh, thresh*2, 3 );
-    imshow("Canny",temp);
-    findContours( temp, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
-    drawing = Mat::zeros( temp.size(), CV_8UC3 );
-
-    drawAllTriangles(drawing,contours);
-    imshow("Triangles",drawing);
-
-}
-/********************************************************************
-drawing of trianlges using contours
-*********************************************************************/
-void drawAllTriangles(Mat& img, const vector< vector<Point> >& contours){
-    vector<Point> approxTriangle;
-    for(size_t i = 0; i < contours.size(); i++){
-        approxPolyDP(contours[i], approxTriangle, arcLength(Mat(contours[i]), true)*0.05, true);
-        if(approxTriangle.size() == 3){
-            drawContours(img, contours, i, Scalar(0, 255, 255), CV_FILLED); // fill GREEN
-            vector<Point>::iterator vertex;
-            for(vertex = approxTriangle.begin(); vertex != approxTriangle.end(); ++vertex){
-                circle(img, *vertex, 3, Scalar(0, 0, 255), 1);
-								std::cout << " Area: " << contourArea(contours[i]) << std::endl;
-				if ( contourArea(contours[i])<800 && contourArea(contours[i])>400)
-				{
-					detector=true;
-					std::cout << detector << '\n';
-				}
-
-        	}
+            if (response == 1)
+                image.at<Vec3b>(i,j)  = green;
+            else if (response == -1)
+                 image.at<Vec3b>(i,j)  = blue;
         }
+
+    // Show the training data
+    int thickness = -1;
+    int lineType = 8;
+    circle( image, Point(501,  10), 5, Scalar(  0,   0,   0), thickness, lineType);
+    circle( image, Point(255,  10), 5, Scalar(255, 255, 255), thickness, lineType);
+    circle( image, Point(501, 255), 5, Scalar(255, 255, 255), thickness, lineType);
+    circle( image, Point( 10, 501), 5, Scalar(255, 255, 255), thickness, lineType);
+
+    // Show support vectors
+    thickness = 2;
+    lineType  = 8;
+    int c     = SVM.get_support_vector_count();
+
+    for (int i = 0; i < c; ++i)
+    {
+        const float* v = SVM.get_support_vector(i);
+        circle( image,  Point( (int) v[0], (int) v[1]),   6,  Scalar(128, 128, 128), thickness, lineType);
     }
+
+    imwrite("result.png", image);        // save the image
+
+    imshow("SVM Simple Example", image); // show it to the user
+    waitKey(0);
+
 }

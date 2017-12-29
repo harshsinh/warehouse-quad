@@ -1,3 +1,4 @@
+#include<bits/stdc++.h>
 #include <opencv2/opencv.hpp>
 #include <math.h>
 #include <vector>
@@ -5,11 +6,21 @@
 #include <iostream>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <algorithm>
 #include <opencv2/nonfree/features2d.hpp> //Thanks to Alessandro
+#include <opencv2/imgproc/imgproc.hpp>
+#include <array>
+#include <initializer_list>
+#include <numeric>
+#include "openCVToQt.hpp"
+#include "complex.h"
+#include <opencv2/ml/ml.hpp>
 using namespace std;
 using namespace cv;
+// using namespace OCV;
+using CP = std::complex<int>;
 
-cv::Mat frame,img_gray,canny_output,drawing,blurred,thresh1,closing,opening,temp;
+cv::Mat frame,img_gray,canny_output,drawing,blurred,thresh1,closing,opening,temp,input;
 // cv::VideoCapture cap;
 int main(int argc, const char* argv[])
 {
@@ -67,6 +78,38 @@ int main(int argc, const char* argv[])
     }
     //convert all of the image to floating point values
     trainingData.convertTo(trainingData, CV_32F);
+/*******************************************************************/
+
+
+/*********************************************************************/
+
+
+
+
+
 cv::imwrite("train.png",trainingData);
     return 0;
 }
+
+
+// template<typename T = uchar, typename U = float>
+// void transform_to_svm_training_data(cv::Mat &input)
+// {
+//    if(input.isContinuous()){
+//        input = input.reshape(1, 1);
+//        input.convertTo(input, cv::DataType<U>().depth);
+//        return;
+//    }
+//
+//    cv::Mat output(1, input.total() * input.channels(),
+//                   cv::DataType<U>().depth);
+//    auto output_ptr = output.ptr<U>(0);
+//    OCV::for_each_channels<T>(input, [&](T a)
+//    {
+//        *output_ptr = a;
+//        ++output_ptr;
+//    });
+//
+//    input = output;
+//
+// }
