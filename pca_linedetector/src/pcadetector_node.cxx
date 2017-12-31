@@ -44,6 +44,7 @@ double set_count = 0;
 int first_val_check = 0;
 bool follow = false;
 bool turn = false;
+bool turn_t = false;
 bool pass = true;
 bool flag = false;
 double height = 0;
@@ -51,6 +52,7 @@ double test_thresh = 20;
 int msg_count = -1;
 int cnts = 0;
 hemd::line pixelLine;
+ros::Publisher pub;
 
 /* Frame and Camera */
 cv::Mat frame;
@@ -81,7 +83,16 @@ void follow_again (const std_msgs::Bool& msg)
 void marker_cb (const hemd::markerInfo& msg)
 {
 
-    turn = ((msg.col == 4) && (msg.shelf == 1));
+    /* Get fixed on true for all values after turn */
+    auto temp = ((msg.col == 4) && (msg.shelf == 1));
+    if (temp) {
+        turn_t = true;
+        pixelLine.mode = 3;
+        pixelLine.slope= 0;
+        pixelLine.c1   = 0;
+        pixelLine.c2   = 0;
+        pub.publish(pixelLine);
+    }
     return;
 }
 
@@ -109,7 +120,7 @@ cv::Vec4f PCA (std::vector<cv::Vec2i> &data_points)
 
     /* Safe gaurd for empty frames */
     // std::cout << "number of points : " << data_points.size() << std::endl;
-  
+
     if(data_points.size() == 0)
         return (cv::Vec4i(-ERROR_VAL, -ERROR_VAL, -ERROR_VAL, -ERROR_VAL));
 
@@ -206,7 +217,7 @@ bool median_filter (double distance)
     		sonar_set[9] = distance;
 		    return true;
 		}
-		
+
         else{
 
     		sonar_set[9] = distance;
@@ -297,6 +308,10 @@ void missionPlanner (double m1_, double m2_, double c1_, double c2_, double m_bu
 
 		if (flag) {
 
+            if (turn_t) {
+
+                pixelLine.mode = 3;
+            }
 			pixelLine.mode = 1;
 			ROS_DEBUG("chalo ab");
 			if ((c_buff < (CROSS_THRESH + 10)) && c_buff != -ERROR_VAL) {
@@ -330,7 +345,7 @@ int main (int argc, char** argv)
 	image_transport::Publisher threshpub = it.advertise ("thresh", 1);
 	image_transport::Publisher finalimpub = it.advertise ("final_image", 1);
 
-	ros::Publisher pub = nh.advertise<hemd::line>("/warehouse_quad/line", 100);
+    pub = nh.advertise<hemd::line>("/warehouse_quad/line", 100);
 	ros::Publisher debug = nh.advertise<geometry_msgs::Vector3>("/debug", 100);
 
 	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
@@ -403,7 +418,7 @@ int main (int argc, char** argv)
             for (std::vector<cv::Vec4i>::iterator it = lines.begin(); it != lines.end(); ++it) {
 
                 cv::Vec4i l = *it;
-                
+
         // Transformation from default coordinates
 				int x1_, y1_, x2_, y2_;
 				x1_ = 128 - l[1]; x2_ = 128 - l[3];
@@ -441,16 +456,19 @@ int main (int argc, char** argv)
 
             auto principle_lines_h = PCA (Y0);
             auto principle_lines_v = PCA (X);
-		auto buffer_line_h = PCA (Y1);	
+		auto buffer_line_h = PCA (Y1);
 
             auto m1_ = principle_lines_v[0];
             auto c1_ = principle_lines_v[1];
             auto m2_ = principle_lines_h[0];
             auto c2_ = principle_lines_h[1];
 		auto m_buff = buffer_line_h[0];
-		auto c_buff = buffer_line_h[1];	
+		auto c_buff = buffer_line_h[1];
 
+        if (!turn)
 	missionPlanner (m1_, c1_, m2_, c2_, m_buff, c_buff);
+        else
+            missionPlanner (m2_, c2_, m1_, c1_, m_buff, c_buff);
 
 	finalmsg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
 	debug_msg.x = pixelLine.slope * 180/3.14159;
