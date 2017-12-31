@@ -236,7 +236,7 @@ void EKF::ekfPrediction(){
 	}*/
 
 	if(sonarState!=WAITING){
-		Q(18,18) = 10*deltaImutime*deltaImutime;
+		Q(18,18) = deltaImutime*deltaImutime;
 		Q(15,15) = 0.08;
 
 	}

@@ -101,7 +101,7 @@ void MARKER::videoCap(cv::Mat tmp){
 					if(j==i){
 						continue;
 					}
-					if(ylocation[i]<ylocation[j]){
+					if(ylocation[i]>ylocation[j]){
 						qr.row = 1;
 					}
 					else{
@@ -113,7 +113,7 @@ void MARKER::videoCap(cv::Mat tmp){
 
 		}
 //		ros::Duration(20-ros::Time::now().toSec()+currentTime).sleep();
-		ros::Duration(10).sleep();
+		ros::Duration(5).sleep();
 		state=DETECTED;
 		timeBegin = ros::Time::now().toSec();
 		ROS_WARN("DETECTED");
@@ -145,7 +145,7 @@ void MARKER::videoCap(cv::Mat tmp){
 			qr.shelf = shelf;
 			qr.col = col;
 			if(ylocation[0]>500){
-				qr.row =1;
+				qr.row =2;
 			}
 			else{
 				qr.row =2;

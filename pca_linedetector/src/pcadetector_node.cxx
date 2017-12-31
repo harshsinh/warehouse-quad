@@ -48,6 +48,9 @@ bool pass = true;
 bool flag = false;
 double height = 0;
 double test_thresh = 20;
+int msg_count = -1;
+int cnts = 0;
+hemd::line pixelLine;
 
 /* Frame and Camera */
 cv::Mat frame;
@@ -214,6 +217,104 @@ bool median_filter (double distance)
     return false;
 }
 
+void missionPlanner (double m1_, double m2_, double c1_, double c2_, double m_buff, double c_buff)
+{
+
+	if (m1_ != -ERROR_VAL) {
+
+		/* Putting a cap on things */
+		if (std::abs(m1_ * TO_PI) > 90)
+			m1_ = CV_PI * 0.5 * ((m1_ > 0) ? 1 : -1);
+
+		/* Putting a cap on things */
+		if (std::abs(c1_) > 128)
+			c1_ = 128 * ((c1_ > 0) ? 1 : -1);
+
+		pass =	median_filter(m1_);
+
+		pixelLine.header.seq = ++msg_count;
+		pixelLine.header.stamp = ros::Time::now();
+		pixelLine.header.frame_id = "0";
+		pixelLine.slope = m1_;
+		pixelLine.c1 = c1_;
+		pixelLine.c2 = 0;
+		pixelLine.mode = 1;
+		cnts = 0;
+
+		cv::line(frame, transform(0, c1_), transform(-c1_/(m1_?m1_:min), 0), cv::Scalar(255, 255, 0), 2);
+	}
+
+	else {
+
+		++cnts;
+		if (cnts < 5)
+			return;
+
+		pixelLine.header.seq = ++msg_count;
+		pixelLine.header.stamp = ros::Time::now();
+		pixelLine.header.frame_id = "0";
+		pixelLine.slope = 0;
+		pixelLine.c1 = 0;
+		pixelLine.c2 = 0;
+		pixelLine.mode = 0;
+	}
+
+	/******************************* Redundant Code ***************************/
+	/* TODO: Depracate this */
+	if (m2_ != -ERROR_VAL) {
+
+		/* Putting a cap on things */
+		if (std::abs(c2_) > 128)
+		c2_ = 128 * ((c2_ > 0) ? 1 : -1);
+
+		pixelLine.c2 = c2_;
+
+		cv::line(frame, transform(c2_, 0), transform(0, -c2_/(m2_?m2_:min)), cv::Scalar(255, 0, 255), 2);
+	}
+	/*************************************************************************/
+
+	/* Draw the intersection point */
+	if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL)
+		cv::circle(frame, transform((m2_*c1_ + c2_)/(1 - m1_*m2_), (m1_*c2_ + c1_)/(1 - m1_*m2_)), 5, cv::Scalar(0, 255, 0), 5);
+
+	if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL && std::abs(c2_) < test_thresh) {
+
+		/* If the marker_detected is high, force move to line follow mode */
+		pixelLine.mode = 2;
+		ROS_WARN("hover karo");
+		test_thresh = CROSS_THRESH;
+
+		/* Putting a cap on things */
+		if (std::abs(c2_) > 128)
+			c2_ = 128 * ((c2_ > 0) ? 1 : -1);
+
+		pixelLine.c1 = c1_;
+		pixelLine.c2 = c2_;
+
+		/* If markers are detcted take orders from the line in Y1 */
+		if (follow)
+			flag = true;
+
+		if (flag) {
+
+			pixelLine.mode = 1;
+			ROS_DEBUG("chalo ab");
+			if ((c_buff < (CROSS_THRESH + 10)) && c_buff != -ERROR_VAL) {
+
+				test_thresh = 20;
+				flag = false;
+			}
+		}
+
+			ROS_WARN("flag : %d", flag);
+			std::cout << "flag : " << flag << std::endl;
+	}
+
+	pixelLine.c1 = pixelLine.c1 * (height/0.7);
+	pixelLine.c2 = pixelLine.c2 * (height/0.7);
+	return;
+}
+
 int main (int argc, char** argv)
 {
 
@@ -221,12 +322,9 @@ int main (int argc, char** argv)
 	ros::init (argc, argv, "linedetector_node");
 	ros::NodeHandle nh;
 	ros::Rate loop_rate (50);
-    hemd::line pixelLine;
     geometry_msgs::Vector3 debug_msg;
 	image_transport::ImageTransport it(nh);
     sensor_msgs::ImagePtr threshmsg, finalmsg;
-    int msg_count = -1;
-    int cnts = 0;
 
 	/* Publish the final line detected image and line */
 	image_transport::Publisher threshpub = it.advertise ("thresh", 1);
@@ -352,97 +450,12 @@ int main (int argc, char** argv)
 		auto m_buff = buffer_line_h[0];
 		auto c_buff = buffer_line_h[1];	
 
-            if (m1_ != -ERROR_VAL) {
+	missionPlanner (m1_, c1_, m2_, c2_, m_buff, c_buff);
 
-		/* Putting a cap on things */
-                if (std::abs(m1_ * TO_PI) > 90)
-                    m1_ = CV_PI * 0.5 * ((m1_ > 0) ? 1 : -1);
+	finalmsg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
+	debug_msg.x = pixelLine.slope * 180/3.14159;
 
-		/* Putting a cap on things */
-                if (std::abs(c1_) > 128)
-                    c1_ = 128 * ((c1_ > 0) ? 1 : -1);
-
-		pass =	median_filter(m1_);
-
-                pixelLine.header.seq = ++msg_count;
-                pixelLine.header.stamp = ros::Time::now();
-                pixelLine.header.frame_id = "0";
-                pixelLine.slope = m1_;
-		pixelLine.c1 = c1_;
-                pixelLine.c2 = 0;
-                pixelLine.mode = 1;
-                cnts = 0;
-
-                cv::line(frame, transform(0, c1_), transform(-c1_/(m1_?m1_:min), 0), cv::Scalar(255, 255, 0), 2);
-            }
-
-            else {
-
-                    ++cnts;
-                    if (cnts < 5)
-                        continue;
-
-                    pixelLine.header.seq = ++msg_count;
-                    pixelLine.header.stamp = ros::Time::now();
-                    pixelLine.header.frame_id = "0";
-                    pixelLine.slope = 0;
-                    pixelLine.c1 = 0;
-                    pixelLine.c2 = 0;
-                    pixelLine.mode = 0;
-                }
-
-/******************************* Redundant Code ***************************/
-/* TODO: Depracate this */
-            if (m2_ != -ERROR_VAL) {
-
-		/* Putting a cap on things */
-                if (std::abs(c2_) > 128)
-                    c2_ = 128 * ((c2_ > 0) ? 1 : -1);
-
-                pixelLine.c2 = c2_;
-
-                cv::line(frame, transform(c2_, 0), transform(0, -c2_/(m2_?m2_:min)), cv::Scalar(255, 0, 255), 2);
-            }
-/*************************************************************************/
-
-		/* Draw the intersection point */
-            if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL)
-                cv::circle(frame, transform((m2_*c1_ + c2_)/(1 - m1_*m2_), (m1_*c2_ + c1_)/(1 - m1_*m2_)), 5, cv::Scalar(0, 255, 0), 5);
-
-            if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL && std::abs(c2_) < test_thresh) {
-
-                /* If the marker_detected is high, force move to line follow mode */
-                pixelLine.mode = 2;
-		test_thresh = CROSS_THRESH;
-
-		/* Putting a cap on things */
-                if (std::abs(c2_) > 128)
-                    c2_ = 128 * ((c2_ > 0) ? 1 : -1);
-
-                pixelLine.c1 = c1_;
-                pixelLine.c2 = c2_;
-
-		/* If markers are detcted take orders from the line in Y1 */
-		if (follow)
-			flag = true;
-
-		if (flag) {
-
-			pixelLine.mode = 1;
-			test_thresh = 20;
-			if ((c_buff < (CROSS_THRESH + 10)) && c_buff != -ERROR_VAL)
-				flag = false;
-		}
-		ROS_WARN("flag : %d", flag);
-            }
-
-        }
-
-        finalmsg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
-
-        debug_msg.x = pixelLine.slope * 180/3.14159;
-	/* This is ensure that the tunnings do not change as height is changed */
-	pixelLine.c1 = pixelLine.c1 * (height/0.7);
+	}
 
 
 	if (pass)
