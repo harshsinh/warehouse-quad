@@ -62,6 +62,8 @@ private:
     int shelf; //assign marker shelf
     int col; //assign marker col
     int row; //assign marker row
+
+    bool flagAlreadyDetected;
 };
 }
 

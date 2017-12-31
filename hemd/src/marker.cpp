@@ -4,7 +4,7 @@ using namespace cv;
 using namespace std;
 using namespace zbar;
 namespace HMDETECTION{
-MARKER::MARKER():shelf(1), row(1), col(1), state(DETECTED){
+MARKER::MARKER():shelf(1), row(1), col(1), state(DETECTED), flagAlreadyDetected(false){
     scanner_.set_config(zbar::ZBAR_NONE, zbar::ZBAR_CFG_ENABLE, 1);
 }
 
@@ -101,7 +101,7 @@ void MARKER::videoCap(cv::Mat tmp){
 					if(j==i){
 						continue;
 					}
-					if(ylocation[i]>ylocation[j]){
+					if(ylocation[i]<ylocation[j]){
 						qr.row = 1;
 					}
 					else{
@@ -170,6 +170,14 @@ void MARKER::videoCap(cv::Mat tmp){
 		ylocation.clear();
 		return;
 	}
+	else if((currentTime-timeBegin) > 20 && barcodeHover.size()==0 && flagAlreadyDetected){
+		state=DETECTED;
+		ROS_ERROR("Same marker warning");
+		ROS_WARN("END DETECTION");
+		advertiseFollow(1);
+		timeBegin=ros::Time::now().toSec();
+		flagAlreadyDetected = false;
+	}
 	else if((currentTime-timeBegin) > 20 && barcodeHover.size()==0){
 		state=DETECTED;
 		ROS_WARN("NO MARKER DETECTED");
@@ -225,6 +233,7 @@ void MARKER::detectMarker(cv::Mat frame){
 		for(int j=0; j<barcodes.size();j++){
 			if(barcode == barcodes[j]){
 				markerCheck =1;
+				flagAlreadyDetected = true;
 			}
 		}
 
