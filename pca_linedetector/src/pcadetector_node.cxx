@@ -21,6 +21,7 @@
 #include "hemd/markerInfo.h"
 #include <iostream>
 #include <ros/ros.h>
+#include <ros/console.h>
 #include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/PoseStamped.h>
 
@@ -46,6 +47,7 @@ bool turn = false;
 bool pass = true;
 bool flag = false;
 double height = 0;
+double test_thresh = 20;
 
 /* Frame and Camera */
 cv::Mat frame;
@@ -407,10 +409,11 @@ int main (int argc, char** argv)
             if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL)
                 cv::circle(frame, transform((m2_*c1_ + c2_)/(1 - m1_*m2_), (m1_*c2_ + c1_)/(1 - m1_*m2_)), 5, cv::Scalar(0, 255, 0), 5);
 
-            if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL && std::abs(c2_) < CROSS_THRESH) {
+            if (m1_ != -ERROR_VAL && m2_ != -ERROR_VAL && std::abs(c2_) < test_thresh) {
 
                 /* If the marker_detected is high, force move to line follow mode */
                 pixelLine.mode = 2;
+		test_thresh = CROSS_THRESH;
 
 		/* Putting a cap on things */
                 if (std::abs(c2_) > 128)
@@ -426,9 +429,11 @@ int main (int argc, char** argv)
 		if (flag) {
 
 			pixelLine.mode = 1;
+			test_thresh = 20;
 			if ((c_buff < (CROSS_THRESH + 10)) && c_buff != -ERROR_VAL)
 				flag = false;
 		}
+		ROS_WARN("flag : %d", flag);
             }
 
         }
