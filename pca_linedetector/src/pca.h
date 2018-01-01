@@ -1,16 +1,15 @@
 /*********************************************************************
  * pca.h
- * Created on : 17th Dec 2017
+ * Created on : 1st Jan 2018
  *      Author: Harsh Sinha
  *
  * Principle Component Analysis using OpenCV's Matrix functions
  ********************************************************************/
 
-#ifndef WAREHOUSE_QUAD_PCA
-#define WAREHOUSE_QUAD_PCA
+#ifndef __WAREHOUSE_QUAD_PCA__
+#define __WAREHOUSE_QUAD_PCA__
 
 #include "CVInclude.h"
-#include <iostream>
 
 namespace PCA {
 class pca {
@@ -25,4 +24,4 @@ class pca {
 };
 }
 
-#endif
+#endif /* __WAREHOUSE_QUAD_PCA__ */
