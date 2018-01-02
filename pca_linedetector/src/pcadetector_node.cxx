@@ -26,13 +26,14 @@
 #include <geometry_msgs/PoseStamped.h>
 
 #define min 0.00001
-#define EIGMIN 0.005*1e6
+#define EIGMIN 0.004*1e6
 #define CROSS_THRESH 80
 #define ERROR_VAL 1000
 #define n_grid 1
 #define ZED 0
 #define SIZE 256
 #define TO_PI 180/3.1415
+#define HEIGHT 0.9
 
 using namespace Eigen;
 
@@ -76,6 +77,7 @@ void follow_again (const std_msgs::Bool& msg)
 {
 
     follow = msg.data;
+	std::cout << "follow : " << follow << std::endl;
     return;
 }
 
@@ -87,11 +89,6 @@ void marker_cb (const hemd::markerInfo& msg)
     auto temp = ((msg.col == 4) && (msg.shelf == 1));
     if (temp) {
         turn_t = true;
-        pixelLine.mode = 3;
-        pixelLine.slope= 0;
-        pixelLine.c1   = 0;
-        pixelLine.c2   = 0;
-        pub.publish(pixelLine);
     }
     return;
 }
@@ -108,8 +105,17 @@ void height_cb (const geometry_msgs::PoseStamped& msg)
 cv::Point transform (double x, double y)
 {
 
-    int x_ = 128 - y;
-    int y_ = 128 - x;
+	int x_, y_;
+	if (!turn) {
+		
+    		x_ = 128 - y;
+		y_ = 128 - x;
+	}
+
+	else {
+		x_ = x - 128;
+		y_ = 128 - y;
+	}
 
     return cv::Point(x_, y_);
 }
@@ -308,25 +314,34 @@ void missionPlanner (double m1_, double m2_, double c1_, double c2_, double m_bu
 
 		if (flag) {
 
-            if (turn_t) {
-
-                pixelLine.mode = 3;
-            }
 			pixelLine.mode = 1;
-			ROS_DEBUG("chalo ab");
-			if ((c_buff < (CROSS_THRESH + 10)) && c_buff != -ERROR_VAL) {
+			ROS_WARN("flag is true");
+			ROS_WARN("turn_t : %d", turn_t);
+			ROS_WARN("c_buff : %f", c_buff);
+			if ((c_buff < (test_thresh + 10)) && c_buff != -ERROR_VAL) {
 
 				test_thresh = 20;
 				flag = false;
+				std::cout << "turn_t : " << turn_t << std::endl;
+				if (turn_t) {
+
+					pixelLine.mode = 3;
+					pixelLine.slope= 0;
+					pixelLine.c1   = 0;
+					pixelLine.c2   = 0;
+					pub.publish(pixelLine);
+					std::cout << "***" << "\n" << "turned" << std::endl;
+					turn = true;
+				}
+
 			}
 		}
 
 			ROS_WARN("flag : %d", flag);
-			std::cout << "flag : " << flag << std::endl;
 	}
 
-	pixelLine.c1 = pixelLine.c1 * (height/0.7);
-	pixelLine.c2 = pixelLine.c2 * (height/0.7);
+	pixelLine.c1 = pixelLine.c1 * (HEIGHT/0.7);
+	pixelLine.c2 = pixelLine.c2 * (HEIGHT/0.7);
 	return;
 }
 
@@ -419,13 +434,17 @@ int main (int argc, char** argv)
 
                 cv::Vec4i l = *it;
 
-        // Transformation from default coordinates
-				int x1_, y1_, x2_, y2_;
-				x1_ = 128 - l[1]; x2_ = 128 - l[3];
-                y1_ = 128 - l[0]; y2_ = 128 - l[2];
+		// Transformation from default coordinates
+		int x1_, y1_, x2_, y2_;
+		auto x1 = transform(l[0], l[1]);
+		auto x2 = transform(l[2], l[3]);
+		x1_ = x1.x; x2_ = x2.x;
+		y1_ = x1.y; y2_ = x2.y;
+		//x1_ = 128 - l[1]; x2_ = 128 - l[3];
+                //y1_ = 128 - l[0]; y2_ = 128 - l[2];
 
 		/* Points for Vertical Line stored here */
-                if (std::abs(y2_ - y1_) <= std::abs(x2_ - x1_)) {
+                if ((std::abs(y2_ - y1_) <= std::abs(x2_ - x1_)) && (std::abs(x1_) < CROSS_THRESH) && (std::abs(x2_) < CROSS_THRESH)) {
 
                     cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(255, 0, 0), 2, CV_AA);
                     X.push_back (cv::Vec2i(x1_, y1_));
@@ -465,10 +484,10 @@ int main (int argc, char** argv)
 		auto m_buff = buffer_line_h[0];
 		auto c_buff = buffer_line_h[1];
 
-        if (!turn)
-	missionPlanner (m1_, c1_, m2_, c2_, m_buff, c_buff);
-        else
-            missionPlanner (m2_, c2_, m1_, c1_, m_buff, c_buff);
+//        if (!turn)
+	missionPlanner (m1_, m2_, c1_, c2_, m_buff, c_buff);
+//        else
+//            missionPlanner (m2_, m1_, c2_, c1_, m_buff, c_buff);
 
 	finalmsg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
 	debug_msg.x = pixelLine.slope * 180/3.14159;

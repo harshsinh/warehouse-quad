@@ -5,7 +5,7 @@ using namespace std;
 
 namespace HMDETECTION{
 
-sonar::sonar():sonar_set(10),set_count(0.0),first_val_check(0),threshold(0.5), no_sonar_data(6.0){
+sonar::sonar():sonar_set(10),set_count(0.0),first_val_check(0),threshold(0.3), no_sonar_data(6.0){
 
 }
 

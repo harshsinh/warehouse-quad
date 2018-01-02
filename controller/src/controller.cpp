@@ -96,6 +96,20 @@ void hold_line()
 
 }
 
+void turn()
+{
+	myfile << yaw_set<<endl;
+	setpoint.pose.position.z = 0.8f;
+	q1.setRPY(0, 0, yaw_set);
+	setpoint.pose.orientation.z = q1.z();
+	setpoint.pose.orientation.w = q1.w();
+	mocap.pose.position.y = c1;
+	mocap.pose.position.x = c2;
+	mocap.pose.position.z = -3.0;
+	cout<<"turn"<<endl;
+
+}
+
 void hold_cross()
 {
 	cout<< "cross" << endl;
@@ -123,12 +137,26 @@ switch (_flag_c) {
   			
   			case 2:
   				
-  				hold_cross();
 				if (mode_line == 1)
   				{
   					_flag_c = 1;
+					return;
   				}
+				else if (mode_line == 3)
+				{
+					_flag_c = 3;
+				}
+  				hold_cross();
   				break;
+
+			case 3:
+
+				turn();
+				if (mode_line == 2)
+				{
+					_flag_c = 2;
+				}
+				break;
   			case 0:
   				
   				 em_land(); //emergency_land

@@ -387,7 +387,7 @@ void EKF::ekfUpdateHeight(double sonarDistance){
 	pose.header.stamp = ros::Time::now();
 	pose.header.frame_id = "quadPose";
 
-	pose.pose.position.x = 0;
+	pose.pose.position.x = sonarDistance;
 	pose.pose.position.y = X_(15); 
 	double mean=0;
 

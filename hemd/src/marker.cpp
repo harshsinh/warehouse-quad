@@ -33,7 +33,10 @@ void MARKER::subscriber(){
 
 	bool check=cap.open("http://192.168.42.129:8080/video?x.mjpeg");
 	if(!check){
-		ROS_WARN("Uable to open camera");
+		ROS_ERROR("UABLE TO OPEN CAMERA");
+	}
+	else{
+		ROS_INFO("CAMERA DETECTED");
 	}
 	//ros::Rate r(84);
 	timeBegin = ros::Time::now().toSec();
@@ -120,10 +123,10 @@ void MARKER::videoCap(cv::Mat tmp){
 		advertiseFollow(1);
 		barcodeHover.clear();
 		ylocation.clear();
-		if(col%4==0){
+		if(col%5==0){
 			shelf++;
 		}
-		if(shelf==2 && col%4==0){
+		if(shelf==2 && col%5==0){
 			col=1;
 		}
 		else{
@@ -152,10 +155,10 @@ void MARKER::videoCap(cv::Mat tmp){
 			}
 			markerPub.publish(qr);
 		}
-		if(col%4==0){
+		if(col%5==0){
 			shelf++;
 		}
-		if(shelf==2 && col%4==0){
+		if(shelf==2 && col%5==0){
 			col=1;
 		}
 		else{
@@ -184,10 +187,10 @@ void MARKER::videoCap(cv::Mat tmp){
 		ROS_WARN("END_DETECTION");
 		advertiseFollow(1);
 		timeBegin = ros::Time::now().toSec();
-				if(col%4==0){
+		if(col%5==0){
 			shelf++;
 		}
-		if(shelf==2 && col%4==0){
+		if(shelf==2 && col%5==0){
 			col=1;
 		}
 		else{
