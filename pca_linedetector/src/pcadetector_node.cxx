@@ -26,7 +26,7 @@
 #include <geometry_msgs/PoseStamped.h>
 
 #define min 0.00001
-#define EIGMIN 0.004*1e6
+#define EIGMIN 0.0008*1e6
 #define CROSS_THRESH 80
 #define ERROR_VAL 1000
 #define n_grid 1
@@ -48,12 +48,16 @@ bool turn = false;
 bool turn_t = false;
 bool pass = true;
 bool flag = false;
+bool turn_next = false;
 double height = 0;
 double test_thresh = 20;
 int msg_count = -1;
 int cnts = 0;
 hemd::line pixelLine;
 ros::Publisher pub;
+
+/* Un-necessary globals */
+double c2_prev = 0;
 
 /* Frame and Camera */
 cv::Mat frame;
@@ -77,7 +81,6 @@ void follow_again (const std_msgs::Bool& msg)
 {
 
     follow = msg.data;
-	std::cout << "follow : " << follow << std::endl;
     return;
 }
 
@@ -247,6 +250,11 @@ void missionPlanner (double m1_, double m2_, double c1_, double c2_, double m_bu
 		if (std::abs(c1_) > 128)
 			c1_ = 128 * ((c1_ > 0) ? 1 : -1);
 
+
+		/* Putting a cap on things */
+		if (std::abs(c2_) > 128)
+			c2_ = 128 * ((c2_ > 0) ? 1 : -1);
+
 		pass =	median_filter(m1_);
 
 		pixelLine.header.seq = ++msg_count;
@@ -258,7 +266,7 @@ void missionPlanner (double m1_, double m2_, double c1_, double c2_, double m_bu
 		pixelLine.mode = 1;
 		cnts = 0;
 
-		cv::line(frame, transform(0, c1_), transform(-c1_/(m1_?m1_:min), 0), cv::Scalar(255, 255, 0), 2);
+		cv::line(frame, transform(0, c1_), transform(-c1_/(m1_?m1_:min), 0), cv::Scalar(255, 0, 0), 2);
 	}
 
 	else {
@@ -282,11 +290,11 @@ void missionPlanner (double m1_, double m2_, double c1_, double c2_, double m_bu
 
 		/* Putting a cap on things */
 		if (std::abs(c2_) > 128)
-		c2_ = 128 * ((c2_ > 0) ? 1 : -1);
+			c2_ = 128 * ((c2_ > 0) ? 1 : -1);
 
 		pixelLine.c2 = c2_;
 
-		cv::line(frame, transform(c2_, 0), transform(0, -c2_/(m2_?m2_:min)), cv::Scalar(255, 0, 255), 2);
+		cv::line(frame, transform(c2_, 0), transform(0, -c2_/(m2_?m2_:min)), cv::Scalar(0, 0, 255), 2);
 	}
 	/*************************************************************************/
 
@@ -298,7 +306,6 @@ void missionPlanner (double m1_, double m2_, double c1_, double c2_, double m_bu
 
 		/* If the marker_detected is high, force move to line follow mode */
 		pixelLine.mode = 2;
-		ROS_WARN("hover karo");
 		test_thresh = CROSS_THRESH;
 
 		/* Putting a cap on things */
@@ -315,33 +322,41 @@ void missionPlanner (double m1_, double m2_, double c1_, double c2_, double m_bu
 		if (flag) {
 
 			pixelLine.mode = 1;
-			ROS_WARN("flag is true");
-			ROS_WARN("turn_t : %d", turn_t);
-			ROS_WARN("c_buff : %f", c_buff);
+			
+			if (turn_next) {
+
+				pixelLine.mode = 3;
+				pixelLine.slope= m1_;
+				pixelLine.c1   = c1_;
+				pixelLine.c2   = c2_;
+				std::cout << "***" << "\n" << "turned" << std::endl;
+				turn = true;
+				turn_next = false;
+			}
+
 			if ((c_buff < (test_thresh + 10)) && c_buff != -ERROR_VAL) {
 
 				test_thresh = 20;
 				flag = false;
-				std::cout << "turn_t : " << turn_t << std::endl;
-				if (turn_t) {
+				if (turn_t && (!turn)) {
 
-					pixelLine.mode = 3;
-					pixelLine.slope= 0;
-					pixelLine.c1   = 0;
-					pixelLine.c2   = 0;
-					pub.publish(pixelLine);
-					std::cout << "***" << "\n" << "turned" << std::endl;
-					turn = true;
+					turn_next = true;
 				}
 
 			}
 		}
 
-			ROS_WARN("flag : %d", flag);
 	}
 
 	pixelLine.c1 = pixelLine.c1 * (HEIGHT/0.7);
 	pixelLine.c2 = pixelLine.c2 * (HEIGHT/0.7);
+
+	auto temp = pixelLine.c1;
+	if (turn) {
+
+		pixelLine.c1 = -pixelLine.c2;
+		pixelLine.c2 = temp;
+	}
 	return;
 }
 
@@ -444,11 +459,14 @@ int main (int argc, char** argv)
                 //y1_ = 128 - l[0]; y2_ = 128 - l[2];
 
 		/* Points for Vertical Line stored here */
-                if ((std::abs(y2_ - y1_) <= std::abs(x2_ - x1_)) && (std::abs(x1_) < CROSS_THRESH) && (std::abs(x2_) < CROSS_THRESH)) {
+                if ((std::abs(y2_ - y1_) <= std::abs(x2_ - x1_)) ) {
 
-                    cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(255, 0, 0), 2, CV_AA);
-                    X.push_back (cv::Vec2i(x1_, y1_));
-                    X.push_back (cv::Vec2i(x2_, y2_));
+			if ((std::abs(y1_) < 90) && (std::abs(y2_) < 90)) {
+
+				cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(255, 0, 0), 1, CV_AA);
+				X.push_back (cv::Vec2i(x1_, y1_));
+				X.push_back (cv::Vec2i(x2_, y2_));
+			}
 		}
 
 		/* Points for Horizontal Line stored in Y0 and Y1 stores line as buffer if any */
@@ -456,7 +474,7 @@ int main (int argc, char** argv)
 
 			if (std::abs(x1_) < CROSS_THRESH && std::abs(x2_) < CROSS_THRESH) {
 
-                    		cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0, 0, 255), 2, CV_AA);
+                    		cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0, 0, 255), 1, CV_AA);
 				Y0.push_back (cv::Vec2i(y1_, x1_));
 				Y0.push_back (cv::Vec2i(y2_, x2_));
                 	}
@@ -491,12 +509,13 @@ int main (int argc, char** argv)
 
 	finalmsg = cv_bridge::CvImage (std_msgs::Header(), "bgr8", frame).toImageMsg();
 	debug_msg.x = pixelLine.slope * 180/3.14159;
+	debug_msg.y = pixelLine.c2 - c2_prev;
+	c2_prev = pixelLine.c2;
 
 	}
 
 
-	if (pass)
-		pub.publish(pixelLine);
+	pub.publish(pixelLine);
         threshpub.publish(threshmsg);
         finalimpub.publish(finalmsg);
         debug.publish(debug_msg);

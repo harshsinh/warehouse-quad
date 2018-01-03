@@ -90,7 +90,7 @@ void hold_line()
 	setpoint.pose.orientation.z = q1.z();
 	setpoint.pose.orientation.w = q1.w();
 	mocap.pose.position.y = c1;
-	mocap.pose.position.x = 0.0f;
+	mocap.pose.position.x = c2;
 	mocap.pose.position.z = -1.0;
 	cout<<"hold_line"<<endl;
 
@@ -133,6 +133,10 @@ switch (_flag_c) {
   				{
   					_flag_c = 2;
   				}
+				else if (mode_line == 3)
+				{
+					_flag_c = 3;
+				}
   				break;
   			
   			case 2:
@@ -156,6 +160,11 @@ switch (_flag_c) {
 				{
 					_flag_c = 2;
 				}
+				else if (mode_line == 1)
+  				{
+  					_flag_c = 1;
+					return;
+  				}
 				break;
   			case 0:
   				
