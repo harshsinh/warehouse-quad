@@ -32,8 +32,8 @@ void MARKER::subscriber(){
 	ros::Subscriber sub = nh_.subscribe("/warehouse_quad/line",10, &MARKER::lineCallback, this);
 
 	markerFile.open("markerData.txt");
-//	bool check=cap.open("http://192.168.42.129:8080/video?x.mjpeg");
-	bool check=cap.open("rtsp://192.168.42.1/live");
+	bool check=cap.open("http://192.168.42.129:8080/video?x.mjpeg");
+	//bool check=cap.open("rtsp://192.168.42.1/live");
 	if(!check){
 		ROS_ERROR("UABLE TO OPEN CAMERA");
 	}
@@ -53,9 +53,9 @@ void MARKER::videoCap(cv::Mat tmp){
 	advertiseFollow(0);
 	if(tmp.empty()){
 		ROS_WARN("Image is Empty");
-		cap.release();
+/*		cap.release();
 		cap.open("rtsp://192.168.42.1/live");
-		ROS_WARN("Camera Detected again");
+		ROS_WARN("Camera Detected again");*/
 		return;		
 	}
 	if(state==HOVER){
@@ -78,9 +78,9 @@ void MARKER::videoCap(cv::Mat tmp){
 	}
 
 
-//	cv::Mat crop = cropImg(tmp); //crop the image
-	cv::Mat frame = tmp;
-	cvtColor( frame, frame, CV_BGR2GRAY ); //convert to gray scale
+	cv::Mat crop = cropImg(tmp); //crop the image
+	cv::Mat frame;
+	cvtColor( crop, frame, CV_BGR2GRAY ); //convert to gray scale
 	publishMarkerImg(frame);
 
         //cout << barcodeHover.size() <<"\t"<<barcodes.size()<<endl;
@@ -110,10 +110,10 @@ void MARKER::videoCap(cv::Mat tmp){
 						continue;
 					}
 					if(ylocation[i]>ylocation[j]){
-						qr.row = 1;
+						qr.row = 2;
 					}
 					else{
-						qr.row = 2;
+						qr.row = 1;
 					}
 				}
 				markerFile <<"shelf:"<<"\t"<<qr.shelf<<"row:"<<"\t"<<qr.row<<"col:"<<"\t"<<qr.col<<"QR:"<<"\t"<<qr.marker<<endl;

@@ -28,7 +28,7 @@
 #define min 0.00001
 #define EIGMIN 0.0008*1e6
 #define CROSS_THRESH 80
-#define SIDE_LINE_THRESH 80
+#define SIDE_LINE_THRESH 60
 #define ERROR_VAL 1000
 #define n_grid 1
 #define ZED 0
