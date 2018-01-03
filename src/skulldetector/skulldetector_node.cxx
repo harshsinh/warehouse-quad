@@ -50,7 +50,7 @@ int main (int argc, char** argv)
 
 
  //check for ip camera
-bool check=cap.open("http://192.168.0.3:8080/video?x.mjpeg");
+bool check=cap.open("http://192.168.42.129:8080/video?x.mjpeg");
 
 
   if(!check)
@@ -107,7 +107,8 @@ return 0;
 
 }
 
-void drawStuff(){
+void drawStuff()
+{
     vector<vector<Point> > contours;
     vector<Vec4i> hierarchy;
 
@@ -123,14 +124,16 @@ void drawStuff(){
 /********************************************************************
 drawing of trianlges using contours
 *********************************************************************/
-void drawAllTriangles(Mat& img, const vector< vector<Point> >& contours){
-    vector<Point> approxTriangle;
-    for(size_t i = 0; i < contours.size(); i++){
-        approxPolyDP(contours[i], approxTriangle, arcLength(Mat(contours[i]), true)*0.05, true);
-        if(approxTriangle.size() == 3){
-            drawContours(img, contours, i, Scalar(0, 255, 255), CV_FILLED); // fill GREEN
-            vector<Point>::iterator vertex;
-            for(vertex = approxTriangle.begin(); vertex != approxTriangle.end(); ++vertex){
+void drawAllTriangles(Mat& img, const vector< vector<Point> >& contours)
+	{
+    	vector<Point> approxTriangle;
+    	for(size_t i = 0; i < contours.size(); i++){
+      approxPolyDP(contours[i], approxTriangle, arcLength(Mat(contours[i]), true)*0.05, true);
+        if(approxTriangle.size() == 3)
+					{
+            	drawContours(img, contours, i, Scalar(0, 255, 255), CV_FILLED); // fill GREEN
+            	vector<Point>::iterator vertex;
+            	for(vertex = approxTriangle.begin(); vertex != approxTriangle.end(); ++vertex){
                 circle(img, *vertex, 3, Scalar(0, 0, 255), 1);
 								std::cout << " Area: " << contourArea(contours[i]) << std::endl;
 				if ( contourArea(contours[i])<800 && contourArea(contours[i])>400)
