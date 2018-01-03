@@ -28,6 +28,7 @@
 #define min 0.00001
 #define EIGMIN 0.0008*1e6
 #define CROSS_THRESH 80
+#define SIDE_LINE_THRESH 80
 #define ERROR_VAL 1000
 #define n_grid 1
 #define ZED 0
@@ -322,7 +323,7 @@ void missionPlanner (double m1_, double m2_, double c1_, double c2_, double m_bu
 		if (flag) {
 
 			pixelLine.mode = 1;
-			
+
 			if (turn_next) {
 
 				pixelLine.mode = 3;
@@ -461,7 +462,7 @@ int main (int argc, char** argv)
 		/* Points for Vertical Line stored here */
                 if ((std::abs(y2_ - y1_) <= std::abs(x2_ - x1_)) ) {
 
-			if ((std::abs(y1_) < 90) && (std::abs(y2_) < 90)) {
+			if ((std::abs(y1_) < SIDE_LINE_THRESH) && (std::abs(y2_) < SIDE_LINE_THRESH)) {
 
 				cv::line (frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(255, 0, 0), 1, CV_AA);
 				X.push_back (cv::Vec2i(x1_, y1_));
