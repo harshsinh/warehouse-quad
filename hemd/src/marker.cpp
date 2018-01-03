@@ -31,7 +31,9 @@ void MARKER::subscriber(){
     markerImgPub = nh_.advertise<sensor_msgs::Image>("warehouse_quad/marker/image",10);
 	ros::Subscriber sub = nh_.subscribe("/warehouse_quad/line",10, &MARKER::lineCallback, this);
 
-	bool check=cap.open("http://192.168.42.129:8080/video?x.mjpeg");
+	markerFile.open("markerData.txt");
+//	bool check=cap.open("http://192.168.42.129:8080/video?x.mjpeg");
+	bool check=cap.open("rtsp://192.168.42.1/live");
 	if(!check){
 		ROS_ERROR("UABLE TO OPEN CAMERA");
 	}
@@ -50,7 +52,10 @@ void MARKER::subscriber(){
 void MARKER::videoCap(cv::Mat tmp){
 	advertiseFollow(0);
 	if(tmp.empty()){
-		ROS_WARN("image is empty");
+		ROS_WARN("Image is Empty");
+		cap.release();
+		cap.open("rtsp://192.168.42.1/live");
+		ROS_WARN("Camera Detected again");
 		return;		
 	}
 	if(state==HOVER){
@@ -73,9 +78,9 @@ void MARKER::videoCap(cv::Mat tmp){
 	}
 
 
-	cv::Mat crop = cropImg(tmp); //crop the image
-	cv::Mat frame;
-	cvtColor( crop, frame, CV_BGR2GRAY ); //convert to gray scale
+//	cv::Mat crop = cropImg(tmp); //crop the image
+	cv::Mat frame = tmp;
+	cvtColor( frame, frame, CV_BGR2GRAY ); //convert to gray scale
 	publishMarkerImg(frame);
 
         //cout << barcodeHover.size() <<"\t"<<barcodes.size()<<endl;
@@ -111,6 +116,7 @@ void MARKER::videoCap(cv::Mat tmp){
 						qr.row = 2;
 					}
 				}
+				markerFile <<"shelf:"<<"\t"<<qr.shelf<<"row:"<<"\t"<<qr.row<<"col:"<<"\t"<<qr.col<<"QR:"<<"\t"<<qr.marker<<endl;
 				markerPub.publish(qr);
 			}
 
@@ -134,7 +140,7 @@ void MARKER::videoCap(cv::Mat tmp){
 		}
 		return;
 	}
-	else if((currentTime-timeBegin) > 20 && barcodeHover.size()==1){
+	else if((currentTime-timeBegin) > 10 && barcodeHover.size()==1){
 		ROS_WARN("ONE_MARKER");
 		bool check=false; //check if the marker exist in barcodes string array
 		for(int j=0;j<barcodes.size();j++){
@@ -153,6 +159,8 @@ void MARKER::videoCap(cv::Mat tmp){
 			else{
 				qr.row =2;
 			}
+				markerFile <<"shelf:"<<"\t"<<qr.shelf<<"row:"<<"\t"<<qr.row<<"col:"<<"\t"<<qr.col<<"QR:"<<"\t"<<qr.marker<<endl;
+	
 			markerPub.publish(qr);
 		}
 		if(col%5==0){
@@ -173,7 +181,7 @@ void MARKER::videoCap(cv::Mat tmp){
 		ylocation.clear();
 		return;
 	}
-	else if((currentTime-timeBegin) > 20 && barcodeHover.size()==0 && flagAlreadyDetected){
+	else if((currentTime-timeBegin) > 10 && barcodeHover.size()==0 && flagAlreadyDetected){
 		state=DETECTED;
 		ROS_ERROR("Same marker warning");
 		ROS_WARN("END DETECTION");
@@ -181,7 +189,7 @@ void MARKER::videoCap(cv::Mat tmp){
 		timeBegin=ros::Time::now().toSec();
 		flagAlreadyDetected = false;
 	}
-	else if((currentTime-timeBegin) > 20 && barcodeHover.size()==0){
+	else if((currentTime-timeBegin) > 10 && barcodeHover.size()==0){
 		state=DETECTED;
 		ROS_WARN("NO MARKER DETECTED");
 		ROS_WARN("END_DETECTION");

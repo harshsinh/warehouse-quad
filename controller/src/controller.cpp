@@ -85,7 +85,7 @@ void em_land()
 void hold_line()
 {
 	myfile << yaw_set<<endl;
-	setpoint.pose.position.z = 0.8f;
+	setpoint.pose.position.z = 0.9f;
 	q1.setRPY(0, 0, yaw_set);
 	setpoint.pose.orientation.z = q1.z();
 	setpoint.pose.orientation.w = q1.w();
@@ -99,7 +99,7 @@ void hold_line()
 void turn()
 {
 	myfile << yaw_set<<endl;
-	setpoint.pose.position.z = 0.8f;
+	setpoint.pose.position.z = 0.9f;
 	q1.setRPY(0, 0, yaw_set);
 	setpoint.pose.orientation.z = q1.z();
 	setpoint.pose.orientation.w = q1.w();
@@ -113,7 +113,7 @@ void turn()
 void hold_cross()
 {
 	cout<< "cross" << endl;
-	setpoint.pose.position.z = 0.8f;
+	setpoint.pose.position.z = 0.9f;
 	q1.setRPY(0, 0, yaw_set);
 	setpoint.pose.orientation.z = q1.z();
 	setpoint.pose.orientation.w = q1.w();

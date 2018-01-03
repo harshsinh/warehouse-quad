@@ -25,6 +25,9 @@
 
 #include "zbar.h"
 
+#include <fstream>
+#include <iostream>
+
 using namespace std;
 
 namespace HMDETECTION{
@@ -64,6 +67,8 @@ private:
     int row; //assign marker row
 
     bool flagAlreadyDetected;
+
+    ofstream markerFile;
 };
 }
 

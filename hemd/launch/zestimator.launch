@@ -28,7 +28,7 @@
 	<node name="main" pkg="hemd" type="main" />
 
 	<!-- linedetector-->
-	<node name="pcadetector_node" pkg="pca_linedetector" type="pcadetector_node" args="0"/>
+	<!--node name="pcadetector_node" pkg="pca_linedetector" type="pcadetector_node" args="0"/-->
 
 
 </launch>

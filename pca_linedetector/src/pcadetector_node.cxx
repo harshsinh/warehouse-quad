@@ -378,9 +378,9 @@ int main (int argc, char** argv)
     pub = nh.advertise<hemd::line>("/warehouse_quad/line", 100);
 	ros::Publisher debug = nh.advertise<geometry_msgs::Vector3>("/debug", 100);
 
-	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 1000, imcallback);
-	ros::Subscriber detect_sub = nh.subscribe ("/warehouse_quad/follow_line", 1, follow_again);
-	ros::Subscriber marker_sub = nh.subscribe ("/warehouse_quad/marker", 1, marker_cb);
+	image_transport::Subscriber sub = it.subscribe ("/usb_cam/image_raw", 100, imcallback);
+	ros::Subscriber detect_sub = nh.subscribe ("/warehouse_quad/follow_line", 100, follow_again);
+	ros::Subscriber marker_sub = nh.subscribe ("/warehouse_quad/marker", 100, marker_cb);
 	ros::Subscriber height_sub = nh.subscribe ("/mavros/vision_pose/pose", 100, height_cb);
 
 
