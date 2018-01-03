@@ -1,6 +1,6 @@
 #include "pca.h"
 
-namespace PCA {
+namespace warehouse_pcadetector {
 
 pca::pca():invalid(-1000), mineigenval(0.05*e6) {}
 

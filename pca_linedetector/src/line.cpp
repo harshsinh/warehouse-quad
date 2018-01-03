@@ -2,11 +2,14 @@
 
 namespace line {
 
-line::line():slope(0), c(0) {}
+line::Line():
+            slope(0),
+            c(0)
+{}
 
-std::vector<double> getLineSlopeC (void)
+std::vector<double> Line::getLineSlopeC (void)
 {
-    if (!_count)
+    if (!_slopec_added)
     {
         ROS_WARN ("Trying to get slope before setting!");
     }
@@ -16,7 +19,7 @@ std::vector<double> getLineSlopeC (void)
     return v;
 }
 
-std::vector<cv::Vec2i> getLinePoints (void)
+std::vector<cv::Vec2i> Line::getLinePoints (void)
 {
     std::vector<cv::Vec2i> v;
     std::vector<cv::Vec2i>::iterator it;
@@ -28,7 +31,7 @@ std::vector<cv::Vec2i> getLinePoints (void)
     return v;
 }
 
-void addLinePoints (std::vector<cv::Vec2i> &points)
+void Line::addLinePoints (std::vector<cv::Vec2i> &points)
 {
     if (!points.size())
     {
@@ -45,13 +48,13 @@ void addLinePoints (std::vector<cv::Vec2i> &points)
     return;
 }
 
-void clearLinePoints (void)
+void Line::clearLinePoints (void)
 {
     _points.clear();
     return;
 }
 
-void setLineSlopeC (std::vector<double> &slopec)
+void Line::setLineSlopeC (std::vector<double> &slopec)
 {
     if (slopec.size() != 2)
     {
@@ -61,7 +64,7 @@ void setLineSlopeC (std::vector<double> &slopec)
 
     _slope = slopec[0];
     _c     = slopec[1];
-    _count++;
+    _slopec_added++;
     return;
 }
 

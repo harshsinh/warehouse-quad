@@ -11,7 +11,7 @@
 
 #include "CVInclude.h"
 
-namespace PCA {
+namespace warehouse_pcadetector {
 class pca {
 
     public:

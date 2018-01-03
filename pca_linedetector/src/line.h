@@ -13,11 +13,11 @@
 #include <vector>
 #include <ros/console.h>
 
-namespace LINE {
-class line {
+namespace warehouse_pcadetector {
+class Line {
 
     public:
-        line();
+        Line();
 
     public:
         std::vector<double> getLineSlopeC (void);
@@ -29,7 +29,7 @@ class line {
     private:
         double _slope, _c;
         std::vector<cv::Vec2i> _points;
-        int _count = 0;
+        int _slopec_added = 0;
 };
 }
 
