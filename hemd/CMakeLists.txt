@@ -57,5 +57,6 @@ target_link_libraries(qr zbar
     ${OpenCV_LIBRARIES}
     ${Boost_LIBRARIES})
 
-add_dependencies(qr ${catkin_EXPORTED_TARGETS})
+add_dependencies(qr ${catkin_EXPORTED_TARGETS}
+    ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
